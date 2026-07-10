@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=15';
+import { sb, fetchAll } from './api.js?v=16';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -203,8 +203,11 @@ function renderHome(){
     ? curSubj.name
     : (recent ? `${recent.name} · 이어서 하기` : '');
   $('#go-time').style.display = (running || paused) ? '' : 'none';
-  $('#go-face-focus').style.display = running ? '' : 'none';
-  $('#go-face-idle').style.display = running ? 'none' : '';
+  // 별이 표정: 공부 중엔 집중, 그 외엔 오늘 누적 공부시간 기준 (달력과 동일 규칙)
+  const todayMin = (minutesPerDay().get(todayStr()) || 0) + elapsedSec()/60;
+  const tier = todayMin > 480 ? 'best' : todayMin > 240 ? 'focus' : 'idle';
+  const face = running ? 'focus' : tier;
+  ['idle','focus','best'].forEach(f => { $('#go-face-'+f).style.display = f === face ? '' : 'none'; });
 
   // 연속 스트릭 바
   const sbEl = $('#streak-bar');
