@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=18';
+import { sb, fetchAll } from './api.js?v=19';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -66,7 +66,13 @@ const catById  = id => S.cats.find(c => c.id === id);
 const subjById = id => S.subjects.find(s => s.id === id);
 const todoById = id => S.todos.find(t => t.id === id);
 const lecById  = id => S.lectures.find(l => l.id === id);
-const doingSubjects = () => S.subjects.slice().sort(bySort).filter(s => s.status === '하는중');
+// '하는중' 과목을 설정 시트 순서(대분류 순서 → 분류 안 과목 순서)대로
+const doingSubjects = () => {
+  const catOrder = new Map(S.cats.slice().sort(bySort).map((c, i) => [c.id, i]));
+  return S.subjects.slice()
+    .filter(s => s.status === '하는중')
+    .sort((a, b) => ((catOrder.get(a.category_id) ?? 999) - (catOrder.get(b.category_id) ?? 999)) || bySort(a, b));
+};
 const subjColor = id => { const s = subjById(id); return s ? s.color : GRAY; };
 const subjName  = id => { const s = subjById(id); return s ? s.name : '삭제된 과목'; };
 
