@@ -101,7 +101,8 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .ws-cell.today{border-color:var(--deep-yellow);}
 .ws-cell .ws-d{display:block;font-size:10.5px;font-weight:700;color:var(--sub);}
 .ws-cell .ws-n{font-family:'Jua';font-size:15px;}
-.ws-cell .ws-n.zero{color:#D8D2C6;}
+.ws-cell .ws-n.zero,.ws-cell .ws-n.dim{color:#D8D2C6;}
+.day-head .day-thumb{margin-left:auto;font-size:13px;}
 .day-col.today{border-color:var(--deep-yellow);}
 .day-col.hover{border-color:var(--ink);}
 .day-head{display:flex;align-items:baseline;gap:6px;margin-bottom:10px;}
@@ -132,7 +133,6 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .steam{transform-box:fill-box;transform-origin:center bottom;animation:steam 1.7s ease-out infinite;opacity:0;}
 .steam.s2{animation-delay:.6s;}
 @keyframes steam{0%{opacity:0;transform:translateY(4px) scale(.85)}35%{opacity:.85}100%{opacity:0;transform:translateY(-7px) scale(1.05)}}
-@media (prefers-reduced-motion:reduce){#pencil,.steam{animation:none}.steam{opacity:.6}}
 .time{font-family:'Jua';font-size:50px;letter-spacing:1px;margin:4px 0 2px;}
 .time-label{font-size:13px;color:var(--sub);margin-bottom:16px;}
 .btn{font-family:'Jua';font-size:17px;border:none;cursor:pointer;background:var(--ink);color:#fff;border-radius:999px;padding:13px 42px;}
@@ -169,6 +169,10 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .day-title{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
 .day-title .tt{font-family:'Jua';font-size:16px;}
 .day-title .tot{font-size:12.5px;color:var(--sub);font-weight:600;}
+.day-edit{border:none;background:#F1EDE6;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;
+  color:var(--ink);cursor:pointer;margin-left:6px;font-family:'Pretendard';}
+.sess-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:13px;}
+.sess-dur{min-width:48px;text-align:right;}
 .day-done{margin-top:14px;border-top:1.5px solid var(--line);padding-top:12px;}
 .day-done .dd-t{font-size:12px;font-weight:700;color:var(--sub);margin-bottom:8px;}
 .day-done .todo-line{padding:5px 0;font-size:13.5px;}

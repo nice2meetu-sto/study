@@ -325,8 +325,9 @@ function renderWeek(){
     const d = addDays(mon, i), ds = ymd(d);
     const isToday = ds === today;
     const list = (per.get(ds) || []).slice().sort(byCreated);
+    const allDone = list.length > 0 && list.every(a => a.done);
     return `<div class="day-col ${isToday?'today':''} ${isCur?'':'past'}" data-date="${ds}">
-      <div class="day-head"><span class="dow">${DOW[i]}</span><span class="date">${d.getMonth()+1}.${d.getDate()}${isToday?' · 오늘':''}</span></div>
+      <div class="day-head"><span class="dow">${DOW[i]}</span><span class="date">${d.getMonth()+1}.${d.getDate()}${isToday?' · 오늘':''}</span>${allDone?'<span class="day-thumb">👍</span>':''}</div>
       ${list.map(a => {
         const t = todoById(a.todo_id); if(!t) return '';
         return `<div class="w-todo ${a.done?'done':''}" data-asg="${a.id}" style="background:${subjColor(t.subject_id)}30"
@@ -338,12 +339,14 @@ function renderWeek(){
   }).join('');
   if(isCur) row.querySelectorAll('.w-todo').forEach(bindWTodo);
 
-  // 한 주 요약표: 요일별 할일 개수, 탭하면 그 요일로 스크롤
+  // 한 주 요약표: 요일별 할일 개수 (다 하면 흐리게), 탭하면 그 요일로 스크롤
   $('#week-sum').innerHTML = Array.from({length:7}, (_,i) => {
     const ds = ymd(addDays(mon, i));
-    const n = (per.get(ds) || []).length;
+    const list = per.get(ds) || [];
+    const n = list.length;
+    const allDone = n > 0 && list.every(a => a.done);
     return `<button class="ws-cell ${ds===today?'today':''}" data-wsi="${i}" aria-label="${DOW[i]}요일로 이동">
-      <span class="ws-d">${DOW[i]}</span><span class="ws-n ${n?'':'zero'}">${n}</span></button>`;
+      <span class="ws-d">${DOW[i]}</span><span class="ws-n ${n ? (allDone?'dim':'') : 'zero'}">${n}</span></button>`;
   }).join('');
   $$('#week-sum .ws-cell').forEach(b => b.addEventListener('click', () => scrollWeekTo(+b.dataset.wsi, true)));
 
@@ -741,12 +744,63 @@ function renderDayCard(y, mo){
   const map = minutesBySubject(x => x === ds);
   let total = 0; map.forEach(v => total += v);
   const doneAsg = S.assignments.filter(a => a.date === ds && a.done);
-  box.innerHTML = `<div class="day-title"><span class="tt">과목별 시간</span><span class="tot">${mo+1}월 ${UI.selDay}일 · 총 ${fmtMin(total)}</span></div>`
+  box.innerHTML = `<div class="day-title"><span class="tt">과목별 시간</span>
+      <span class="tot">${mo+1}월 ${UI.selDay}일 · 총 ${fmtMin(total)}
+        <button class="day-edit" onclick="openSessSheet()">수정</button></span></div>`
     + barRows(map, fmtHM)
     + (doneAsg.length ? `<div class="day-done"><p class="dd-t">이날 한 일</p>
         ${doneAsg.map(a => { const t = todoById(a.todo_id); return t
           ? `<div class="todo-line"><button class="chk on" disabled>✓</button><span class="done-txt">${esc(t.text)}</span></div>` : ''; }).join('')}
       </div>` : '');
+}
+
+/* ── 공부 기록 수정 시트 ── */
+const hmOf = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+function openSessSheet(){
+  const base = monthOf(UI.moOffset);
+  UI.sessDate = ymd(new Date(base.getFullYear(), base.getMonth(), UI.selDay));
+  renderSessSheet();
+  $('#ovl-sess').classList.add('show');
+}
+function renderSessSheet(){
+  const ds = UI.sessDate;
+  const d = parseYmd(ds);
+  $('#sess-title').textContent = `${d.getMonth()+1}월 ${d.getDate()}일 기록`;
+  const list = S.sessions.filter(s => dateOfIso(s.started_at) === ds)
+    .sort((a,b) => a.started_at.localeCompare(b.started_at));
+  $('#sess-list').innerHTML = list.length ? `<div class="cat-group">
+    ${list.map(s => `
+      <div class="swipe-wrap"><div class="swipe-del-bg">🗑</div>
+      <div class="set-line" data-sess-id="${s.id}">
+        <span class="c-dot" style="background:${subjColor(s.subject_id)}" aria-hidden="true"></span>
+        <span class="sess-name">${esc(subjName(s.subject_id))}</span>
+        <input type="time" class="date-input" value="${hmOf(s.started_at)}" onchange="sessTime(this,'${s.id}','start')" aria-label="시작 시각">
+        <span class="meta">~</span>
+        <input type="time" class="date-input" value="${hmOf(s.ended_at)}" onchange="sessTime(this,'${s.id}','end')" aria-label="종료 시각">
+        <span class="meta sess-dur">${fmtMin(s.duration_sec/60)}</span>
+      </div></div>`).join('')}
+  </div>` : '<div class="cat-group"><p class="todo-empty" style="padding:6px 4px">기록이 없어요</p></div>';
+  $$('#sess-list .swipe-wrap').forEach(w => bindSwipe(w, line => {
+    const id = line.dataset.sessId;
+    S.sessions = S.sessions.filter(s => s.id !== id);
+    del('sessions', id);
+    renderSessSheet(); renderAll();
+  }));
+}
+function sessTime(el, id, which){
+  const s = S.sessions.find(x => x.id === id);
+  if(!s || !el.value) return;
+  const [y, m, dd] = UI.sessDate.split('-').map(Number);
+  const [H, M] = el.value.split(':').map(Number);
+  let start = new Date(s.started_at), end = new Date(s.ended_at);
+  if(which === 'start') start = new Date(y, m-1, dd, H, M, 0);
+  else end = new Date(y, m-1, dd, H, M, 0);
+  if(end <= start) end = new Date(end.getTime() + 86400000); // 자정 넘김으로 간주
+  s.started_at = start.toISOString();
+  s.ended_at = end.toISOString();
+  s.duration_sec = Math.round((end - start) / 1000);
+  upd('sessions', id, {started_at:s.started_at, ended_at:s.ended_at, duration_sec:s.duration_sec});
+  renderSessSheet(); renderAll();
 }
 
 /* ═════════ ⑤ 과목 관리 ═════════ */
@@ -1227,6 +1281,8 @@ $('#memo').addEventListener('blur', () => {
 $('#memo').addEventListener('keydown', e => { if(e.key === 'Escape') e.target.blur(); });
 $('#btn-dday-close').addEventListener('click', closeDdaySheet);
 $('#ovl-dday').addEventListener('click', e => { if(e.target === $('#ovl-dday')) closeDdaySheet(); });
+$('#btn-sess-close').addEventListener('click', () => $('#ovl-sess').classList.remove('show'));
+$('#ovl-sess').addEventListener('click', e => { if(e.target === $('#ovl-sess')) $('#ovl-sess').classList.remove('show'); });
 $('#wk-prev').addEventListener('click', () => { if(UI.wkOffset > MIN_WK){ UI.wkOffset--; renderWeek(); } });
 $('#wk-next').addEventListener('click', () => { if(UI.wkOffset < 0){ UI.wkOffset++; renderWeek(); } });
 $('#mo-prev').addEventListener('click', () => { if(UI.moOffset > minMonthOffset()){ UI.moOffset--; UI.selDay = null; renderMonth(); } });
@@ -1260,7 +1316,7 @@ Object.assign(window, {
   toggleAsg, removeAsg, pickDay, setFilter, toggleCard, tdChk, tdEdit, tdGhost,
   toggleLec, toggleLecCard, lecTgl, catEdit, catGhost, subjEdit, subjGhost, cycleStatus,
   togglePick, pickColor, startSubjDrag, lecEdit, lecTotal, addLecSet,
-  ddayEdit, ddayDate, ddayGhost,
+  ddayEdit, ddayDate, ddayGhost, openSessSheet, sessTime,
 });
 
 /* 작은 할일 입력칸: 해당 할일 그룹에 포커스가 있을 때만 표시 */

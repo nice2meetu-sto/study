@@ -110,15 +110,15 @@
                 fill="#fff" stroke="#2B2440" stroke-width="3" stroke-linejoin="round"/>
           <line x1="60" y1="87" x2="60" y2="99" stroke="#2B2440" stroke-width="2.2"/>
           <g id="pencil">
-            <line x1="73" y1="66" x2="83" y2="80" stroke="#E8A93C" stroke-width="5.5" stroke-linecap="round"/>
-            <line x1="83" y1="80" x2="86" y2="84" stroke="#2B2440" stroke-width="4.5" stroke-linecap="round"/>
+            <line x1="79" y1="66" x2="89" y2="80" stroke="#E8A93C" stroke-width="5.5" stroke-linecap="round"/>
+            <line x1="89" y1="80" x2="92" y2="84" stroke="#2B2440" stroke-width="4.5" stroke-linecap="round"/>
           </g>
         </g>
         <g id="star-break" style="display:none">
-          <rect x="72" y="69" width="17" height="13" rx="4" fill="#fff" stroke="#2B2440" stroke-width="3"/>
-          <path d="M89 72 q6.5 2.5 0 7.5" fill="none" stroke="#2B2440" stroke-width="2.6"/>
-          <path class="steam s1" d="M77 63 q2.5 -3 0 -6.5" stroke="#8C86A3" stroke-width="2.2" fill="none" stroke-linecap="round"/>
-          <path class="steam s2" d="M84 64 q2.5 -3 0 -6.5" stroke="#8C86A3" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+          <rect x="79" y="69" width="17" height="13" rx="4" fill="#fff" stroke="#2B2440" stroke-width="3"/>
+          <path d="M96 72 q6.5 2.5 0 7.5" fill="none" stroke="#2B2440" stroke-width="2.6"/>
+          <path class="steam s1" d="M84 63 q2.5 -3 0 -6.5" stroke="#8C86A3" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+          <path class="steam s2" d="M91 64 q2.5 -3 0 -6.5" stroke="#8C86A3" stroke-width="2.2" fill="none" stroke-linecap="round"/>
         </g>
       </svg>
       <div class="time" id="clock">00:00:00</div>
@@ -181,6 +181,14 @@
     <div class="sheet">
       <div class="sheet-head"><span class="t">주요 일정</span><button id="btn-dday-close" aria-label="닫기">✕</button></div>
       <div id="dday-list"></div>
+    </div>
+  </div>
+
+  <!-- 공부 기록 수정 시트 -->
+  <div class="overlay" id="ovl-sess">
+    <div class="sheet">
+      <div class="sheet-head"><span class="t" id="sess-title">기록 수정</span><button id="btn-sess-close" aria-label="닫기">✕</button></div>
+      <div id="sess-list"></div>
     </div>
   </div>
 
