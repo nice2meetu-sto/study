@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=10';
+import { sb, fetchAll } from './api.js?v=11';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -837,14 +837,15 @@ function lecStats(L){
 function lecBlockHtml(L){
   const { eps, on } = lecStats(L);
   const open = UI.openLec.has(L.id);
+  const color = subjColor(L.subject_id);
   return `
     <div class="lec-head" onclick="toggleLec(event,'${L.id}')">
       <span class="t">🎧 ${esc(L.name)}</span>
       <span class="lec-prog">${on} / ${L.total_count}강</span>
     </div>
-    <div class="lec-track"><div class="lec-fill" style="width:${Math.round(on/Math.max(1,L.total_count)*100)}%;background:${subjColor(L.subject_id)}"></div></div>
+    <div class="lec-track"><div class="lec-fill" style="width:${Math.round(on/Math.max(1,L.total_count)*100)}%;background:${color}"></div></div>
     <div class="lec-grid ${open?'show':''}">
-      ${eps.map(e => `<button class="lec ${e.done?'on':''}" onclick="lecTgl(event,'${e.id}')">${e.no}강</button>`).join('')}
+      ${eps.map(e => `<button class="lec ${e.done?'on':''}"${e.done?` style="background:${color}"`:''} onclick="lecTgl(event,'${e.id}')">${e.no}강</button>`).join('')}
     </div>`;
 }
 // 인강 탭: 전체 인강 카드 (완주한 것도 '수강 완료!'로 표시)
@@ -859,7 +860,7 @@ function lectureCardHtml(L){
     <div class="lec-track" style="margin:12px 0 2px"><div class="lec-fill" style="width:${Math.round(on/Math.max(1,L.total_count)*100)}%;background:${color}"></div></div>
     <div class="subj-detail">
       <div class="lec-grid show">
-        ${eps.map(e => `<button class="lec ${e.done?'on':''}" onclick="lecTgl(event,'${e.id}')">${e.no}강</button>`).join('')}
+        ${eps.map(e => `<button class="lec ${e.done?'on':''}"${e.done?` style="background:${color}"`:''} onclick="lecTgl(event,'${e.id}')">${e.no}강</button>`).join('')}
       </div>
     </div>
   </div>`;
