@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=8';
+import { sb, fetchAll } from './api.js?v=9';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -285,10 +285,10 @@ function renderDdaySet(){
   }));
 }
 function ddayEdit(el, id){
+  const d = S.ddays.find(x => x.id === id); if(!d) return;
   const v = el.textContent.trim();
-  const d = S.ddays.find(x => x.id === id);
-  if(d && v && v !== d.title){ d.title = v; upd('ddays', id, {title:v}); }
-  renderDdaySet(); renderHome();
+  if(v && v !== d.title){ d.title = v; upd('ddays', id, {title:v}); renderDdaySet(); renderHome(); }
+  else if(!v){ el.textContent = d.title; }
 }
 function ddayDate(el, id){
   const d = S.ddays.find(x => x.id === id);
@@ -970,7 +970,9 @@ function bindSwipe(wrap, onDelete){
       if(!swiping && Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)*1.4){
         swiping = true; wrap.classList.add('swiping');
         if(document.activeElement) document.activeElement.blur();
-        line.setPointerCapture(ev.pointerId);
+        // blur가 재렌더를 유발해 행이 교체됐다면 이번 스와이프는 중단
+        if(!line.isConnected){ swiping = false; return; }
+        try{ line.setPointerCapture(ev.pointerId); }catch{ /* ignore */ }
       }
       if(swiping){ ev.preventDefault(); line.style.transform = `translateX(${Math.min(0,dx)}px)`; }
     };
@@ -1049,9 +1051,10 @@ function renderSet(){
   }));
 }
 function catEdit(el, id){
-  const c = catById(id); const v = el.textContent.trim();
-  if(c && v && v !== c.name){ c.name = v; upd('categories', id, {name:v}); }
-  renderAll(); renderSet();
+  const c = catById(id); if(!c) return;
+  const v = el.textContent.trim();
+  if(v && v !== c.name){ c.name = v; upd('categories', id, {name:v}); renderAll(); renderSet(); }
+  else if(!v){ el.textContent = c.name; }
 }
 function catGhost(el){
   const v = el.textContent.trim();
@@ -1063,9 +1066,10 @@ function catGhost(el){
   renderAll(); renderSet();
 }
 function subjEdit(el, id){
-  const s = subjById(id); const v = el.textContent.trim();
-  if(s && v && v !== s.name){ s.name = v; upd('subjects', id, {name:v}); }
-  renderAll(); renderSet();
+  const s = subjById(id); if(!s) return;
+  const v = el.textContent.trim();
+  if(v && v !== s.name){ s.name = v; upd('subjects', id, {name:v}); renderAll(); renderSet(); }
+  else if(!v){ el.textContent = s.name; }
 }
 function subjGhost(el, catId){
   const v = el.textContent.trim();
@@ -1097,87 +1101,97 @@ function pickColor(e, id, c){
   upd('subjects', id, {color:c});
   renderAll(); renderSet();
 }
-let sDrag = null, sFromId = null;
+/* 설정 시트 드래그 정렬: 끌고 다니면 실제 목록이 밀리면서 들어갈 자리가 보임 */
+let dragCtx = null;
 function startSubjDrag(e, id){
   e.stopPropagation(); e.preventDefault();
-  sFromId = id;
   const line = e.target.closest('.set-line');
-  sDrag = line.cloneNode(true); sDrag.classList.add('ghost-drag');
-  sDrag.style.width = line.offsetWidth+'px'; sDrag.style.background = '#fff';
-  sDrag.style.borderRadius = '10px'; sDrag.style.padding = '6px 10px';
-  document.body.appendChild(sDrag); moveSubj(e);
-  e.target.setPointerCapture(e.pointerId);
-  e.target.addEventListener('pointermove', moveSubj);
-  e.target.addEventListener('pointerup', dropSubj, {once:true});
+  beginSetDrag(e, 'subj', line.closest('.swipe-wrap'), line);
 }
-function moveSubj(e){
-  if(sDrag){ sDrag.style.left = e.clientX+'px'; sDrag.style.top = e.clientY+'px'; }
-  $$('.cat-group').forEach(g => g.classList.remove('hover'));
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const grp = el && el.closest('.cat-group[data-cat]');
-  if(grp) grp.classList.add('hover');
-}
-function dropSubj(e){
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const grp = el && el.closest('.cat-group[data-cat]');
-  if(grp && sFromId){
-    const to = grp.dataset.cat;
-    const s = subjById(sFromId);
-    if(s && s.category_id !== to){
-      const inCat = S.subjects.filter(x => x.category_id === to);
-      s.category_id = to;
-      s.sort_order = inCat.length ? Math.max(...inCat.map(x => x.sort_order))+1 : 0;
-      upd('subjects', s.id, {category_id:to, sort_order:s.sort_order});
-      renderAll();
-    }
-  }
-  $$('.cat-group').forEach(g => g.classList.remove('hover'));
-  if(sDrag){ sDrag.remove(); sDrag = null; }
-  sFromId = null;
-  renderSet();
-}
-
-// 대분류 순서 변경: 핸들 드래그 → 놓은 대분류 위치로 이동 (과목도 함께)
-let cDrag = null, cFromId = null;
 function startCatDrag(e, id){
   e.stopPropagation(); e.preventDefault();
-  cFromId = id;
   const line = e.target.closest('.set-line');
-  cDrag = line.cloneNode(true); cDrag.classList.add('ghost-drag');
-  cDrag.style.width = line.offsetWidth+'px'; cDrag.style.background = '#fff';
-  cDrag.style.borderRadius = '10px'; cDrag.style.padding = '6px 10px';
-  document.body.appendChild(cDrag); moveCat(e);
-  e.target.setPointerCapture(e.pointerId);
-  e.target.addEventListener('pointermove', moveCat);
-  e.target.addEventListener('pointerup', dropCat, {once:true});
+  beginSetDrag(e, 'cat', line.closest('.cat-group'), line);
 }
-function moveCat(e){
-  if(cDrag){ cDrag.style.left = e.clientX+'px'; cDrag.style.top = e.clientY+'px'; }
-  $$('.cat-group').forEach(g => g.classList.remove('hover'));
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const grp = el && el.closest('.cat-group[data-cat]');
-  if(grp && grp.dataset.cat !== cFromId) grp.classList.add('hover');
+function beginSetDrag(e, type, host, line){
+  const ghost = line.cloneNode(true);
+  ghost.classList.add('ghost-drag');
+  ghost.style.width = line.offsetWidth+'px'; ghost.style.background = '#fff';
+  ghost.style.borderRadius = '10px'; ghost.style.padding = '6px 10px';
+  document.body.appendChild(ghost);
+  host.classList.add('drag-src');
+  // 주의: 호스트를 DOM에서 옮기면 포인터 캡처가 풀리므로 window에서 이벤트를 받는다
+  const mv = ev => moveSetDrag(ev);
+  const up = () => endSetDrag();
+  dragCtx = { type, host, ghost, mv, up };
+  window.addEventListener('pointermove', mv);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', up);
+  moveSetDrag(e);
 }
-function dropCat(e){
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const grp = el && el.closest('.cat-group[data-cat]');
-  if(grp && cFromId && grp.dataset.cat !== cFromId){
-    const cats = S.cats.slice().sort(bySort);
-    const from = cats.findIndex(c => c.id === cFromId);
-    const to = cats.findIndex(c => c.id === grp.dataset.cat);
-    if(from >= 0 && to >= 0){
-      const [moved] = cats.splice(from, 1);
-      cats.splice(to, 0, moved);
-      cats.forEach((c, i) => {
-        if(c.sort_order !== i){ c.sort_order = i; upd('categories', c.id, {sort_order:i}); }
-      });
-      renderAll();
+function moveSetDrag(ev){
+  if(!dragCtx) return;
+  const { type, host, ghost } = dragCtx;
+  ghost.style.left = ev.clientX+'px'; ghost.style.top = ev.clientY+'px';
+  const el = document.elementFromPoint(ev.clientX, ev.clientY);
+  if(!el || host.contains(el)) return;
+  if(type === 'cat'){
+    const over = el.closest('#set-list .cat-group[data-cat]');
+    if(!over || over === host) return;
+    const r = over.getBoundingClientRect();
+    if(ev.clientY < r.top + r.height/2) over.parentNode.insertBefore(host, over);
+    else over.parentNode.insertBefore(host, over.nextSibling);
+  }else{
+    const overWrap = el.closest('.swipe-wrap');
+    const overGrp = el.closest('#set-list .cat-group[data-cat]');
+    if(overWrap && overWrap !== host && overWrap.querySelector('[data-subj-id]')){
+      // 다른 과목 행: 위/아래 절반에 따라 그 앞/뒤로
+      const r = overWrap.getBoundingClientRect();
+      if(ev.clientY < r.top + r.height/2) overWrap.parentNode.insertBefore(host, overWrap);
+      else overWrap.parentNode.insertBefore(host, overWrap.nextSibling);
+    }else if(overWrap && overWrap.querySelector('.cat-line')){
+      // 대분류 이름 행: 그 분류 맨 위로
+      overWrap.parentNode.insertBefore(host, overWrap.nextSibling);
+    }else if(overGrp && !overGrp.contains(host)){
+      // 다른 분류의 빈 영역: 맨 아래(고스트 행 앞)로
+      const gl = overGrp.querySelector('.set-line.ghost');
+      if(gl) overGrp.insertBefore(host, gl);
     }
   }
-  $$('.cat-group').forEach(g => g.classList.remove('hover'));
-  if(cDrag){ cDrag.remove(); cDrag = null; }
-  cFromId = null;
-  renderSet();
+}
+function endSetDrag(){
+  if(!dragCtx) return;
+  const { type, host, ghost, mv, up } = dragCtx;
+  window.removeEventListener('pointermove', mv);
+  window.removeEventListener('pointerup', up);
+  window.removeEventListener('pointercancel', up);
+  ghost.remove();
+  host.classList.remove('drag-src');
+  dragCtx = null;
+  if(type === 'cat'){
+    // 화면 순서 그대로 대분류 순번 저장
+    $$('#set-list .cat-group[data-cat]').forEach((g, i) => {
+      const c = catById(g.dataset.cat);
+      if(c && c.sort_order !== i){ c.sort_order = i; upd('categories', c.id, {sort_order:i}); }
+    });
+  }else{
+    // 화면 순서 그대로 각 분류의 과목 소속·순번 저장
+    $$('#set-list .cat-group[data-cat]').forEach(g => {
+      const catId = g.dataset.cat;
+      [...g.querySelectorAll('[data-subj-id]')].forEach((ln, i) => {
+        const s = subjById(ln.dataset.subjId);
+        if(!s) return;
+        if(s.category_id !== catId){
+          s.category_id = catId; s.sort_order = i;
+          upd('subjects', s.id, {category_id:catId, sort_order:i});
+        }else if(s.sort_order !== i){
+          s.sort_order = i;
+          upd('subjects', s.id, {sort_order:i});
+        }
+      });
+    });
+  }
+  renderAll(); renderSet();
 }
 
 /* ── 인강 설정 탭 ── */
@@ -1216,9 +1230,10 @@ function renderLecSet(){
   }));
 }
 function lecEdit(el, id){
-  const L = lecById(id); const v = el.textContent.trim();
-  if(L && v && v !== L.name){ L.name = v; upd('lectures', id, {name:v}); }
-  renderSubjects(); renderLecSet();
+  const L = lecById(id); if(!L) return;
+  const v = el.textContent.trim();
+  if(v && v !== L.name){ L.name = v; upd('lectures', id, {name:v}); renderSubjects(); renderLecSet(); }
+  else if(!v){ el.textContent = L.name; }
 }
 function lecTotal(el, id){
   const n = parseInt(el.value);

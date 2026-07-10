@@ -128,10 +128,10 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .hero-timer{background:var(--yellow-soft);border-radius:var(--r-lg);padding:26px 20px 22px;text-align:center;margin-top:18px;
   transition:background .3s ease;}
 /* 별이 소품 애니메이션: 연필 사각사각 / 커피 김 모락모락 */
-#pencil{transform-box:fill-box;transform-origin:15% 15%;animation:write 1s ease-in-out infinite alternate;}
+#pencil{transform-box:fill-box;transform-origin:15% 15%;animation:write 5s ease-in-out infinite alternate;}
 @keyframes write{from{transform:translate(-7px,2px) rotate(-13deg)}to{transform:translate(6px,-2px) rotate(9deg)}}
-.steam{transform-box:fill-box;transform-origin:center bottom;animation:steam 2s ease-out infinite;opacity:0;}
-.steam.s2{animation-delay:1s;}
+.steam{transform-box:fill-box;transform-origin:center bottom;animation:steam 10s ease-out infinite;opacity:0;}
+.steam.s2{animation-delay:5s;}
 @keyframes steam{0%{opacity:0;transform:translateY(4px) scale(.85)}35%{opacity:.85}100%{opacity:0;transform:translateY(-7px) scale(1.05)}}
 .time{font-family:'Jua';font-size:50px;letter-spacing:1px;margin:4px 0 2px;}
 .time-label{font-size:13px;color:var(--sub);margin-bottom:16px;}
@@ -246,6 +246,7 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .sheet-tabs button.on{background:var(--ink);color:#fff;}
 .cat-group{background:#fff;border-radius:var(--r-md);padding:12px 14px;margin-bottom:12px;}
 .cat-group.hover{outline:2px solid var(--ink);}
+.drag-src{opacity:.35;}
 .set-line{display:flex;align-items:center;gap:9px;padding:8px 0;font-size:14px;touch-action:pan-y;position:relative;}
 .set-line.cat-line .td-txt{font-weight:700;font-size:14.5px;}
 .set-line .drag-h{color:#D3CCBF;font-size:14px;cursor:grab;flex:0 0 auto;touch-action:none;user-select:none;padding:0 2px;}
