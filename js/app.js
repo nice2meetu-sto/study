@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=12';
+import { sb, fetchAll } from './api.js?v=13';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -50,7 +50,7 @@ const S = { user:null, cats:[], subjects:[], todos:[], assignments:[], sessions:
 const UI = {
   filter:'전체', openSubj:new Set(), openLec:new Set(),
   pickFor:null, sheetTab:'subj',
-  wkOffset:0, moOffset:0, selDay:null, poolSubj:null, weekScrolled:false,
+  wkOffset:0, moOffset:0, selDay:null, poolSubj:null, weekScrolled:false, statAvg:false,
 };
 
 const bySort = (a,b) => (a.sort_order - b.sort_order) || String(a.created_at).localeCompare(String(b.created_at));
@@ -706,18 +706,22 @@ function renderMonth(){
   const today = new Date();
   const inMonth = ds => { const d = parseYmd(ds); return d.getFullYear() === y && d.getMonth() === mo; };
 
-  // 요약 3카드
-  let totalMin = 0;
-  per.forEach((v,k) => { if(inMonth(k)) totalMin += v; });
+  // 요약 3카드 (총 공부시간 카드 탭 = 일평균 전환)
+  let totalMin = 0, studyDays = 0;
+  per.forEach((v,k) => { if(inMonth(k)){ totalMin += v; if(v > 0) studyDays++; } });
   const streak = isCurMonth
     ? [`🔥 ${currentStreak()}일`, '연속 스트릭']
     : [`${longestStreakInMonth(y,mo)}일`, '최장 스트릭'];
   const asgMonth = S.assignments.filter(a => inMonth(a.date) && a.date <= todayStr());
   const rate = asgMonth.length ? Math.round(asgMonth.filter(a => a.done).length / asgMonth.length * 100) + '%' : '—';
-  const totalLbl = totalMin >= 60 ? `${Math.floor(totalMin/60)}시간` : `${Math.round(totalMin)}분`;
-  $('#mo-stats').innerHTML = [
-    [totalLbl,'총 공부시간'], streak, [rate,'할일 달성률'],
-  ].map(([n,l]) => `<div class="card"><div class="num">${n}</div><div class="lbl">${l}</div></div>`).join('');
+  const timeVal = UI.statAvg ? (studyDays ? totalMin/studyDays : 0) : totalMin;
+  const timeLbl = UI.statAvg ? '일평균 공부시간' : '총 공부시간';
+  $('#mo-stats').innerHTML = `
+    <div class="card stat-time" onclick="toggleStatAvg()" role="button" aria-label="총 공부시간·일평균 전환">
+      <div class="num">${fmtHM(timeVal)}</div><div class="lbl">${timeLbl}</div>
+    </div>
+    <div class="card"><div class="num">${streak[0]}</div><div class="lbl">${streak[1]}</div></div>
+    <div class="card"><div class="num">${rate}</div><div class="lbl">할일 달성률</div></div>`;
 
   // 별이 달력
   const g = $('#cal-grid');
@@ -736,6 +740,7 @@ function renderMonth(){
   renderDayCard(y, mo);
 }
 function pickDay(d){ UI.selDay = UI.selDay === d ? null : d; renderMonth(); }
+function toggleStatAvg(){ UI.statAvg = !UI.statAvg; renderMonth(); }
 function barRows(map, fmt){
   const rows = [...map.entries()].map(([k,min]) => ({
     name: k === 'deleted' ? '삭제된 과목' : subjName(k),
@@ -1397,7 +1402,7 @@ Object.assign(window, {
   toggleAsg, removeAsg, pickDay, setFilter, toggleCard, tdChk, tdEdit, tdGhost,
   toggleLec, toggleLecCard, lecTgl, catEdit, catGhost, subjEdit, subjGhost, cycleStatus,
   togglePick, pickColor, startSubjDrag, startCatDrag, lecEdit, lecTotal, addLecSet,
-  ddayEdit, ddayDate, ddayGhost, openSessSheet, sessTime,
+  ddayEdit, ddayDate, ddayGhost, openSessSheet, sessTime, toggleStatAvg,
 });
 
 /* 작은 할일 입력칸: 해당 할일 그룹에 포커스가 있을 때만 표시 */
