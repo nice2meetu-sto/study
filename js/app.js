@@ -222,12 +222,15 @@ function renderHome(){
   const first = new Date(now.getFullYear(), now.getMonth(), 1);
   const days = new Date(now.getFullYear(), now.getMonth()+1, 0).getDate();
   let heat = '';
+  let studyDays = 0;
   for(let b = 0; b < dowIdx(first); b++) heat += '<i style="visibility:hidden"></i>';
   for(let d = 1; d <= days; d++){
-    const v = level(per.get(ymd(new Date(now.getFullYear(), now.getMonth(), d))) || 0);
-    heat += `<i style="background:${LV[v]}"></i>`;
+    const min = per.get(ymd(new Date(now.getFullYear(), now.getMonth(), d))) || 0;
+    heat += `<i style="background:${LV[level(min)]}"></i>`;
+    if(d <= now.getDate() && min > 0) studyDays++;
   }
   $('#heat').innerHTML = heat;
+  $('#heat-foot').textContent = `${studyDays}일 공부 ${now.getDate() - studyDays}일 놀기`;
 
   // 오늘의 할일 (플랜의 오늘 배정과 동일 데이터)
   $('#home-todo-lbl').textContent = `오늘의 할일 · ${DOW[dowIdx(now)]}요일`;
@@ -331,10 +334,15 @@ function renderWeek(){
   }).join('');
   if(isCur) row.querySelectorAll('.w-todo').forEach(bindWTodo);
 
-  // 오늘 칸이 보이도록: 첫 표시 때는 오늘 위치로, 이후에는 스크롤 유지
+  // 첫 표시: 월=왼쪽 끝, 일=오른쪽 끝, 나머지 요일=오늘 칸이 화면 중앙. 이후에는 스크롤 유지
   if(isCur && !UI.weekScrolled){
     const t = row.querySelector('.day-col.today');
-    if(t) row.scrollLeft = Math.max(0, (t.offsetLeft - row.offsetLeft) - (row.clientWidth - t.clientWidth)/2);
+    if(t){
+      const di = dowIdx(new Date());
+      if(di === 0) row.scrollLeft = 0;
+      else if(di === 6) row.scrollLeft = row.scrollWidth;
+      else row.scrollLeft = Math.max(0, (t.offsetLeft - row.offsetLeft) - (row.clientWidth - t.clientWidth)/2);
+    }
     UI.weekScrolled = true;
   }else{
     row.scrollLeft = prevScroll;
@@ -549,14 +557,29 @@ function renderTimerChips(){
   const sel = subjById(T.subjId);
   $('#hero-timer').style.background = sel ? sel.color + '40' : 'var(--yellow-soft)';
 }
+function longestStreakEver(){
+  const days = [...minutesPerDay().keys()].sort();
+  let max = 0, run = 0, prev = null;
+  for(const d of days){
+    run = (prev && (parseYmd(d) - parseYmd(prev)) === 86400000) ? run + 1 : 1;
+    if(run > max) max = run;
+    prev = d;
+  }
+  return max;
+}
 function renderTimerStats(){
   const today = todayStr();
-  let min = 0;
-  for(const s of S.sessions) if(dateOfIso(s.started_at) === today) min += s.duration_sec/60;
-  min += elapsedSec()/60;
+  const per = minutesPerDay();
+  const min = (per.get(today) || 0) + elapsedSec()/60;
   $('#tm-today').textContent = fmtMin(min);
   const st = currentStreak();
   $('#tm-streak').textContent = st > 0 ? `🔥 ${st}일` : '0일';
+  // 최장 공부시간(하루 기준) / 최장 연속 공부일수
+  let best = 0;
+  per.forEach(v => { if(v > best) best = v; });
+  best = Math.max(best, min);
+  $('#tm-best').textContent = fmtMin(best);
+  $('#tm-maxstreak').textContent = `${Math.max(longestStreakEver(), st)}일`;
 }
 function onStartPause(){
   if(!T.subjId){ $('#clock-label').textContent = '먼저 과목을 골라주세요'; return; }
@@ -570,7 +593,13 @@ function onStartPause(){
   }
   persistTimer(); renderTimer(); renderHome();
 }
+// 종료 버튼 → 기록/취소 확인 시트
 function onEnd(){
+  const s = elapsedSec();
+  $('#end-time').textContent = `${pad(Math.floor(s/3600))}:${pad(Math.floor(s%3600/60))}:${pad(s%60)}`;
+  $('#ovl-end').classList.add('show');
+}
+function endSave(){
   if(T.startAt){ T.base += Date.now() - T.startAt; T.startAt = null; }
   stopTick();
   const dur = Math.floor(T.base/1000);
@@ -752,7 +781,7 @@ function toggleLecCard(e, id){
 function renderSubjects(){
   const box = $('#subj-list');
   if(UI.filter === '인강'){
-    box.innerHTML = S.lectures.slice().sort(byCreated).map(L => lectureCardHtml(L)).join('');
+    box.innerHTML = `<div class="lec-tab">${S.lectures.slice().sort(byCreated).map(L => lectureCardHtml(L)).join('')}</div>`;
     return;
   }
   box.innerHTML = S.cats.slice().sort(bySort).map(cat => {
@@ -1158,6 +1187,9 @@ $('#mo-prev').addEventListener('click', () => { if(UI.moOffset > minMonthOffset(
 $('#mo-next').addEventListener('click', () => { if(UI.moOffset < 0){ UI.moOffset++; UI.selDay = null; renderMonth(); } });
 $('#btn-start').addEventListener('click', onStartPause);
 $('#btn-end').addEventListener('click', onEnd);
+$('#btn-end-save').addEventListener('click', () => { $('#ovl-end').classList.remove('show'); endSave(); });
+$('#btn-end-cancel').addEventListener('click', () => $('#ovl-end').classList.remove('show'));
+$('#ovl-end').addEventListener('click', e => { if(e.target === $('#ovl-end')) $('#ovl-end').classList.remove('show'); });
 $('#btn-set').addEventListener('click', openSheet);
 $('#btn-sheet-close').addEventListener('click', closeSheet);
 $('#ovl').addEventListener('click', e => { if(e.target === $('#ovl')) closeSheet(); });

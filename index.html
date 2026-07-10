@@ -56,6 +56,7 @@
       <div class="tile" style="background:#fff">
         <span class="t-lbl" id="heat-lbl">공부 달력</span>
         <div class="heat" id="heat"></div>
+        <div class="heat-foot" id="heat-foot"></div>
       </div>
       <div class="tile wide" style="background:#fff">
         <span class="t-lbl" id="home-todo-lbl">오늘의 할일</span>
@@ -111,6 +112,10 @@
       <div class="mini-stat" style="background:var(--mint-soft)"><div class="num" id="tm-today">0분</div><div class="lbl">오늘 공부한 시간</div></div>
       <div class="mini-stat" style="background:var(--lav-soft)"><div class="num" id="tm-streak">0일</div><div class="lbl">연속 공부</div></div>
     </div>
+    <div class="today-row" style="margin-top:10px">
+      <div class="mini-stat" style="background:var(--yellow-soft)"><div class="num" id="tm-best">0분</div><div class="lbl">최장 공부시간</div></div>
+      <div class="mini-stat" style="background:var(--pink-soft)"><div class="num" id="tm-maxstreak">0일</div><div class="lbl">최장 연속 공부</div></div>
+    </div>
   </section>
 
   <!-- ④ 기록 -->
@@ -158,6 +163,18 @@
     <div class="sheet">
       <div class="sheet-head"><span class="t">주요 일정</span><button id="btn-dday-close" aria-label="닫기">✕</button></div>
       <div id="dday-list"></div>
+    </div>
+  </div>
+
+  <!-- 타이머 종료 확인 시트 -->
+  <div class="overlay" id="ovl-end">
+    <div class="sheet end-sheet">
+      <p class="end-title">이번 공부를 기록할까요?</p>
+      <div class="end-time" id="end-time">00:00:00</div>
+      <div class="end-btns">
+        <button class="btn" id="btn-end-save">기록하기</button>
+        <button class="btn btn-sub" id="btn-end-cancel">취소</button>
+      </div>
     </div>
   </div>
 
