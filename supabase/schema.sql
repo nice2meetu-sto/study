@@ -106,6 +106,13 @@ create index if not exists idx_episodes_user     on lecture_episodes(user_id);
 create index if not exists idx_episodes_lecture  on lecture_episodes(lecture_id);
 create index if not exists idx_ddays_user        on ddays(user_id);
 
+-- ── 테이블 권한: 로그인 사용자(authenticated)에게 부여 ──
+grant usage on schema public to authenticated;
+grant select, insert, update, delete on
+  categories, subjects, todos, assignments,
+  sessions, lectures, lecture_episodes, ddays
+to authenticated;
+
 -- ── RLS: 본인 데이터만 접근 ─────────────────────────────
 alter table categories       enable row level security;
 alter table subjects         enable row level security;
