@@ -965,16 +965,25 @@ function showLogin(msg){
   $('#login').style.display = '';
   $('#login-err').textContent = msg || '';
 }
+async function loadAllRetry(){
+  for(let i = 0; ; i++){
+    try{ return await loadAll(); }
+    catch(e){
+      if(i >= 2) throw e;
+      await new Promise(r => setTimeout(r, 1500)); // 테이블 생성 직후 스키마 캐시 반영 지연 대비
+    }
+  }
+}
 async function boot(){
   const { data:{ session } } = await sb.auth.getSession();
   if(!session){ showLogin(); return; }
   S.user = session.user;
   try{
-    await loadAll();
+    await loadAllRetry();
   }catch(e){
     console.error(e);
-    await sb.auth.signOut();
-    showLogin('데이터를 불러오지 못했어요. Supabase에서 supabase/schema.sql 실행 여부를 확인해주세요.');
+    const detail = e?.message || e?.error_description || String(e);
+    showLogin(`데이터를 불러오지 못했어요 — ${detail}\n(로그인은 되어 있어요. 새로고침하면 다시 시도합니다)`);
     return;
   }
   $('#login').style.display = 'none';
