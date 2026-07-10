@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=17';
+import { sb, fetchAll } from './api.js?v=18';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -324,14 +324,15 @@ function ddayGhost(el){
 }
 
 /* ═════════ ② 위클리 플랜 ═════════ */
-const MIN_WK = -52;
+const MIN_WK = -52, MAX_WK = 52;
 function renderWeek(){
   const isCur = UI.wkOffset === 0;
+  const editable = UI.wkOffset >= 0; // 이번 주 + 미래 주는 편집 가능, 과거 주만 읽기 전용
   const mon = mondayOf(new Date(), UI.wkOffset);
   $('#wk-lbl').textContent = weekLabel(mon);
   $('#wk-prev').disabled = UI.wkOffset <= MIN_WK;
-  $('#wk-next').disabled = isCur;
-  $('#pool-card').style.display = isCur ? 'block' : 'none';
+  $('#wk-next').disabled = UI.wkOffset >= MAX_WK;
+  $('#pool-card').style.display = editable ? 'block' : 'none';
 
   const today = todayStr();
   const per = new Map();
@@ -344,7 +345,7 @@ function renderWeek(){
     const isToday = ds === today;
     const list = (per.get(ds) || []).slice().sort(byCreated);
     const allDone = list.length > 0 && list.every(a => a.done);
-    return `<div class="day-col ${isToday?'today':''} ${isCur?'':'past'}" data-date="${ds}">
+    return `<div class="day-col ${isToday?'today':''} ${editable?'':'past'}" data-date="${ds}">
       <div class="day-head"><span class="dow">${DOW[i]}</span><span class="date">${d.getMonth()+1}.${d.getDate()}${isToday?' · 오늘':''}</span>${allDone?'<span class="day-thumb">👍</span>':''}</div>
       ${list.map(a => {
         const t = todoById(a.todo_id); if(!t) return '';
@@ -355,7 +356,7 @@ function renderWeek(){
       }).join('')}
     </div>`;
   }).join('');
-  if(isCur) row.querySelectorAll('.w-todo').forEach(bindWTodo);
+  if(editable) row.querySelectorAll('.w-todo').forEach(bindWTodo);
 
   // 한 주 요약표: 요일별 할일 개수 (다 하면 흐리게), 탭하면 그 요일로 스크롤
   $('#week-sum').innerHTML = Array.from({length:7}, (_,i) => {
@@ -376,7 +377,7 @@ function renderWeek(){
     row.scrollLeft = prevScroll;
   }
 
-  if(isCur) renderPool();
+  if(editable) renderPool();
 }
 function scrollWeekTo(i, smooth){
   const row = $('#week-row');
@@ -477,9 +478,10 @@ function poolItems(sid){
   return all.filter(t => t.parent_id || !all.some(c => c.parent_id === t.id))
     .sort(bySort);
 }
-// 이번 주 범위에서 이 할일의 배정 찾기 (할일 하나 = 요일 하나)
+// 보고 있는 주 범위에서 이 할일의 배정 찾기 (할일 하나 = 주당 요일 하나)
 function weekAssignmentOf(todoId){
-  const mon = ymd(mondayOf(new Date(), 0)), sun = ymd(addDays(mondayOf(new Date(), 0), 6));
+  const monD = mondayOf(new Date(), UI.wkOffset);
+  const mon = ymd(monD), sun = ymd(addDays(monD, 6));
   return S.assignments.find(a => a.todo_id === todoId && a.date >= mon && a.date <= sun);
 }
 function renderPool(){
@@ -493,7 +495,7 @@ function renderPool(){
   }));
   $('#pool').innerHTML = UI.poolSubj ? poolItems(UI.poolSubj).map(t => {
     const asg = weekAssignmentOf(t.id);
-    const monMid = parseYmd(ymd(mondayOf(new Date(), 0)));
+    const monMid = parseYmd(ymd(mondayOf(new Date(), UI.wkOffset)));
     const dayLbl = asg ? DOW[Math.round((parseYmd(asg.date) - monMid) / 86400000)] : '';
     return `<span class="pool-item ${asg?'assigned':''}" data-todo="${t.id}">
       <span class="tag" style="background:${subjColor(UI.poolSubj)}"></span>${esc(t.text)}${asg?`<b class="pi-day">${dayLbl}</b>`:''}</span>`;
@@ -1384,7 +1386,7 @@ $('#day-edit-btn').addEventListener('click', openSessSheet);
 $('#btn-sess-close').addEventListener('click', () => $('#ovl-sess').classList.remove('show'));
 $('#ovl-sess').addEventListener('click', e => { if(e.target === $('#ovl-sess')) $('#ovl-sess').classList.remove('show'); });
 $('#wk-prev').addEventListener('click', () => { if(UI.wkOffset > MIN_WK){ UI.wkOffset--; renderWeek(); } });
-$('#wk-next').addEventListener('click', () => { if(UI.wkOffset < 0){ UI.wkOffset++; renderWeek(); } });
+$('#wk-next').addEventListener('click', () => { if(UI.wkOffset < MAX_WK){ UI.wkOffset++; renderWeek(); } });
 $('#mo-prev').addEventListener('click', () => { if(UI.moOffset > minMonthOffset()){ UI.moOffset--; UI.selDay = null; renderMonth(); } });
 $('#mo-next').addEventListener('click', () => { if(UI.moOffset < 0){ UI.moOffset++; UI.selDay = null; renderMonth(); } });
 $('#btn-start').addEventListener('click', onStartPause);
