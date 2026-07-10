@@ -49,10 +49,11 @@
         </svg>
       </button>
       <div class="tile wide streak-bar" id="streak-bar" style="background:#fff;display:none"></div>
-      <button class="tile tile-btn" id="dday-tile" style="background:var(--pink-soft)" aria-label="주요 일정 관리">
-        <span class="t-lbl">주요 일정</span>
-        <div id="dday-rows"></div>
-      </button>
+      <div class="tile-split">
+        <button class="dmini" data-dmini="0" aria-label="주요 일정 관리"></button>
+        <button class="dmini" data-dmini="1" aria-label="주요 일정 관리"></button>
+        <div class="memo-card"><div id="memo" contenteditable="true" data-ph="메모" aria-label="메모"></div></div>
+      </div>
       <div class="tile" style="background:#fff">
         <span class="t-lbl" id="heat-lbl">공부 달력</span>
         <div class="heat" id="heat"></div>
@@ -75,6 +76,7 @@
       <span class="p-lbl" id="wk-lbl"></span>
       <button id="wk-next" aria-label="다음 주">›</button>
     </div>
+    <div class="week-sum" id="week-sum"></div>
     <div class="week-scroll" id="week-row"></div>
     <div class="card pool-card" id="pool-card">
       <p class="sec-title">과목별 할일 담기</p>
@@ -170,6 +172,7 @@
   <div class="overlay" id="ovl-end">
     <div class="sheet end-sheet">
       <p class="end-title">이번 공부를 기록할까요?</p>
+      <div class="end-subj" id="end-subj"></div>
       <div class="end-time" id="end-time">00:00:00</div>
       <div class="end-btns">
         <button class="btn" id="btn-end-save">기록하기</button>

@@ -159,6 +159,7 @@ function goScreen(id){
     const recent = recentSubject();
     if(recent){ T.subjId = recent.id; persistTimer(); renderTimer(); }
   }
+  if(id === 'scr-week' && UI.wkOffset === 0 && !UI.weekScrolled) scrollWeekToToday();
 }
 function recentSubject(){
   const doing = doingSubjects();
@@ -206,15 +207,16 @@ function renderHome(){
     }
   }
 
-  // D-day (다가오는 일정 2개)
+  // D-day 미니 카드 2개 (다가오는 일정 순)
   const today = todayStr();
   const upcoming = S.ddays.filter(d => d.date >= today).sort((a,b) => a.date.localeCompare(b.date)).slice(0,2);
-  $('#dday-rows').innerHTML = upcoming.map(d => {
+  [0,1].forEach(i => {
+    const el = $(`[data-dmini="${i}"]`);
+    const d = upcoming[i];
+    if(!d){ el.innerHTML = ''; return; }
     const diff = Math.round((parseYmd(d.date) - parseYmd(today)) / 86400000);
-    const dt = parseYmd(d.date);
-    return `<div class="dday-row"><span class="dd">${diff === 0 ? 'D-day' : 'D-'+diff}</span>
-      <span class="nm">${esc(d.title)}<br>${dt.getMonth()+1}.${dt.getDate()}</span></div>`;
-  }).join('');
+    el.innerHTML = `<span class="dd">${diff === 0 ? 'D-day' : 'D-'+diff}</span><span class="nm">${esc(d.title)}</span>`;
+  });
 
   // 이번 달 미니 히트맵
   $('#heat-lbl').textContent = `${now.getMonth()+1}월 공부 달력`;
@@ -334,21 +336,40 @@ function renderWeek(){
   }).join('');
   if(isCur) row.querySelectorAll('.w-todo').forEach(bindWTodo);
 
+  // 한 주 요약표: 요일별 할일 개수, 탭하면 그 요일로 스크롤
+  $('#week-sum').innerHTML = Array.from({length:7}, (_,i) => {
+    const ds = ymd(addDays(mon, i));
+    const n = (per.get(ds) || []).length;
+    return `<button class="ws-cell ${ds===today?'today':''}" data-wsi="${i}" aria-label="${DOW[i]}요일로 이동">
+      <span class="ws-d">${DOW[i]}</span><span class="ws-n ${n?'':'zero'}">${n}</span></button>`;
+  }).join('');
+  $$('#week-sum .ws-cell').forEach(b => b.addEventListener('click', () => scrollWeekTo(+b.dataset.wsi, true)));
+
   // 첫 표시: 월=왼쪽 끝, 일=오른쪽 끝, 나머지 요일=오늘 칸이 화면 중앙. 이후에는 스크롤 유지
-  if(isCur && !UI.weekScrolled){
-    const t = row.querySelector('.day-col.today');
-    if(t){
-      const di = dowIdx(new Date());
-      if(di === 0) row.scrollLeft = 0;
-      else if(di === 6) row.scrollLeft = row.scrollWidth;
-      else row.scrollLeft = Math.max(0, (t.offsetLeft - row.offsetLeft) - (row.clientWidth - t.clientWidth)/2);
-    }
-    UI.weekScrolled = true;
+  // (화면이 숨겨진 상태에서는 스크롤이 적용되지 않으므로 플랜 탭 진입 시에도 시도)
+  if(isCur && !UI.weekScrolled && $('#scr-week').classList.contains('active')){
+    scrollWeekToToday();
   }else{
     row.scrollLeft = prevScroll;
   }
 
   if(isCur) renderPool();
+}
+function scrollWeekTo(i, smooth){
+  const row = $('#week-row');
+  const col = row.children[i];
+  if(!col) return;
+  let left;
+  if(i === 0) left = 0;
+  else if(i === 6) left = row.scrollWidth;
+  else left = Math.max(0, (col.offsetLeft - row.offsetLeft) - (row.clientWidth - col.clientWidth)/2);
+  if(smooth) row.scrollTo({left, behavior:'smooth'});
+  else row.scrollLeft = left;
+}
+function scrollWeekToToday(){
+  if(!$('#week-row').querySelector('.day-col.today')) return;
+  scrollWeekTo(dowIdx(new Date()), false);
+  UI.weekScrolled = true;
 }
 function toggleAsg(id){
   const a = S.assignments.find(x => x.id === id); if(!a) return;
@@ -593,11 +614,21 @@ function onStartPause(){
   }
   persistTimer(); renderTimer(); renderHome();
 }
-// 종료 버튼 → 기록/취소 확인 시트
+// 종료 버튼 → 기록/취소 확인 시트 (취소 = 이번 기록 삭제)
 function onEnd(){
   const s = elapsedSec();
+  const subj = subjById(T.subjId);
+  $('#end-subj').innerHTML = subj
+    ? `<span class="dot" style="background:${subj.color}"></span>${esc(subj.name)}` : '';
   $('#end-time').textContent = `${pad(Math.floor(s/3600))}:${pad(Math.floor(s%3600/60))}:${pad(s%60)}`;
   $('#ovl-end').classList.add('show');
+}
+function endDiscard(){
+  stopTick();
+  T.startAt = null; T.base = 0; T.firstStart = null;
+  persistTimer();
+  renderAll();
+  $('#clock-label').textContent = '기록하지 않았어요';
 }
 function endSave(){
   if(T.startAt){ T.base += Date.now() - T.startAt; T.startAt = null; }
@@ -1170,6 +1201,7 @@ async function boot(){
   }
   $('#login').style.display = 'none';
   $('#app').style.display = '';
+  $('#memo').innerText = S.user.user_metadata?.memo || '';
   restoreTimer();
   renderAll();
   goScreen('scr-home');
@@ -1178,7 +1210,15 @@ async function boot(){
 /* ═════════ 이벤트 바인딩 ═════════ */
 $$('nav button').forEach(b => b.addEventListener('click', () => goScreen(b.dataset.scr)));
 $('#go-timer').addEventListener('click', () => goScreen('scr-timer'));
-$('#dday-tile').addEventListener('click', openDdaySheet);
+$$('.dmini').forEach(b => b.addEventListener('click', openDdaySheet));
+// 자유 메모: 유저 메타데이터에 저장 (blur 시)
+$('#memo').addEventListener('blur', () => {
+  const v = $('#memo').innerText.replace(/\n+$/,'').trim();
+  if((S.user?.user_metadata?.memo || '') === v) return;
+  S.user.user_metadata = {...(S.user.user_metadata || {}), memo: v};
+  save(() => sb.auth.updateUser({ data: { memo: v } }));
+});
+$('#memo').addEventListener('keydown', e => { if(e.key === 'Escape') e.target.blur(); });
 $('#btn-dday-close').addEventListener('click', closeDdaySheet);
 $('#ovl-dday').addEventListener('click', e => { if(e.target === $('#ovl-dday')) closeDdaySheet(); });
 $('#wk-prev').addEventListener('click', () => { if(UI.wkOffset > MIN_WK){ UI.wkOffset--; renderWeek(); } });
@@ -1188,7 +1228,7 @@ $('#mo-next').addEventListener('click', () => { if(UI.moOffset < 0){ UI.moOffset
 $('#btn-start').addEventListener('click', onStartPause);
 $('#btn-end').addEventListener('click', onEnd);
 $('#btn-end-save').addEventListener('click', () => { $('#ovl-end').classList.remove('show'); endSave(); });
-$('#btn-end-cancel').addEventListener('click', () => $('#ovl-end').classList.remove('show'));
+$('#btn-end-cancel').addEventListener('click', () => { $('#ovl-end').classList.remove('show'); endDiscard(); });
 $('#ovl-end').addEventListener('click', e => { if(e.target === $('#ovl-end')) $('#ovl-end').classList.remove('show'); });
 $('#btn-set').addEventListener('click', openSheet);
 $('#btn-sheet-close').addEventListener('click', closeSheet);
