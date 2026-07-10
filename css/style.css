@@ -48,6 +48,7 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .home-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:16px;}
 .tile{border-radius:var(--r-md);padding:15px 14px;position:relative;overflow:hidden;min-height:118px;}
 .tile .t-lbl{font-size:12px;font-weight:700;opacity:.6;}
+.tile-link{cursor:pointer;}
 .tile.wide{grid-column:1/-1;min-height:auto;}
 .tile-btn{border:none;text-align:left;cursor:pointer;font-family:'Pretendard';color:var(--ink);
   display:flex;flex-direction:column;align-items:flex-start;justify-content:flex-start;}
@@ -284,11 +285,11 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 /* ═══ 네비 (플로팅 알약) ═══ */
 nav{position:fixed;bottom:calc(16px + env(safe-area-inset-bottom));left:16px;right:16px;margin:0 auto;
   max-width:396px;height:72px;background:#fff;
-  border-radius:999px;display:flex;justify-content:space-around;align-items:center;
+  border-radius:var(--r-lg);display:flex;justify-content:space-around;align-items:center;
   padding:0 8px;box-shadow:0 12px 32px rgba(43,36,64,.18);z-index:10;}
 nav button{background:none;border:none;cursor:pointer;font-family:'Pretendard';font-size:10.5px;
   font-weight:700;color:var(--sub);display:flex;flex-direction:column;align-items:center;gap:5px;
-  padding:8px 12px;border-radius:999px;}
+  padding:8px 12px;border-radius:var(--r-md);}
 nav button.on{color:var(--ink);background:var(--yellow-soft);}
 nav button:focus-visible{outline:3px solid #D8D2C6;}
 nav .ico{font-size:19px;line-height:1;}

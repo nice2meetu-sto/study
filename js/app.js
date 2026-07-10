@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=9';
+import { sb, fetchAll } from './api.js?v=10';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -1329,6 +1329,12 @@ async function boot(){
 /* ═════════ 이벤트 바인딩 ═════════ */
 $$('nav button').forEach(b => b.addEventListener('click', () => goScreen(b.dataset.scr)));
 $('#go-timer').addEventListener('click', () => goScreen('scr-timer'));
+// 오늘의 할일 타일: 체크 영역 외 탭 → 플랜, 공부 달력 타일 → 기록
+$('#home-todo-tile').addEventListener('click', e => {
+  if(e.target.closest('.chk')) return;
+  goScreen('scr-week');
+});
+$('#heat-tile').addEventListener('click', () => goScreen('scr-stats'));
 $$('.dmini').forEach(b => b.addEventListener('click', openDdaySheet));
 // 자유 메모: 유저 메타데이터에 저장 (blur 시)
 $('#memo').addEventListener('blur', () => {

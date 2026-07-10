@@ -1,6 +1,6 @@
 // 데이터 레이어: Supabase 클라이언트 + 조회/저장 헬퍼
 import { createClient } from 'https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2/+esm';
-import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=9';
+import { SUPABASE_URL, SUPABASE_ANON_KEY } from './config.js?v=10';
 
 export const sb = createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
