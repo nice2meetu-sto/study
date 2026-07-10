@@ -191,8 +191,8 @@ function renderHome(){
   $('#home-date').textContent = `${now.getMonth()+1}월 ${now.getDate()}일 ${DOW[dowIdx(now)]}요일`;
   const name = S.user?.user_metadata?.name;
   $('#home-greet').innerHTML = name
-    ? `${esc(name)}님, 오늘도<br>별이랑 시작해요 ⭐`
-    : `오늘도 별이랑<br>시작해요 ⭐`;
+    ? `${esc(name)}님, 오늘도<br>별이랑 시작해요 💫`
+    : `오늘도 별이랑<br>시작해요 💫`;
 
   // 공부 시작하기 (타이머 상태 연동)
   const running = !!T.startAt, paused = !running && T.base > 0;
@@ -889,7 +889,7 @@ function lectureCardHtml(L){
   return `<div class="subj-card ${open?'open':''}" onclick="toggleLecCard(event,'${L.id}')">
     <div class="subj-top"><span class="tag" style="background:${color}"></span>
       <span class="nm">🎧 ${esc(L.name)}<small class="lec-subj">${esc(subjName(L.subject_id))}</small></span>
-      <span class="lec-prog">${complete ? '수강 완료!' : `${on} / ${L.total_count}강`}</span></div>
+      <span class="lec-prog">${complete ? '🎉수강 완료!' : `${on} / ${L.total_count}강`}</span></div>
     <div class="lec-track" style="margin:12px 0 2px"><div class="lec-fill" style="width:${Math.round(on/Math.max(1,L.total_count)*100)}%;background:${color}"></div></div>
     <div class="subj-detail">
       <div class="lec-grid show">
