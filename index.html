@@ -41,9 +41,14 @@
     <h1 class="display" id="home-greet"></h1>
     <div class="home-grid">
       <button class="go-timer" id="go-timer">
-        <span>공부 시작하기<small id="go-recent"></small></span>
-        <svg width="48" height="44" viewBox="0 0 120 110" aria-hidden="true"><path d="M60 14 L72.9 40.2 L101.8 44.4 L80.9 64.8 L85.9 93.6 L60 80 L34.1 93.6 L39.1 64.8 L18.2 44.4 L47.1 40.2 Z" fill="#FFD983" stroke="#FFD983" stroke-width="28" stroke-linejoin="round"/><circle cx="49" cy="55" r="4" fill="#2B2440"/><circle cx="71" cy="55" r="4" fill="#2B2440"/><path d="M53 68 Q60 73 67 68" stroke="#2B2440" stroke-width="3.2" fill="none" stroke-linecap="round"/></svg>
+        <span><span id="go-title">공부 시작하기</span><small id="go-recent"></small></span>
+        <svg width="48" height="44" viewBox="0 0 120 110" aria-hidden="true">
+          <path d="M60 14 L72.9 40.2 L101.8 44.4 L80.9 64.8 L85.9 93.6 L60 80 L34.1 93.6 L39.1 64.8 L18.2 44.4 L47.1 40.2 Z" fill="#FFD983" stroke="#FFD983" stroke-width="28" stroke-linejoin="round"/>
+          <g id="go-face-idle"><circle cx="49" cy="55" r="4" fill="#2B2440"/><circle cx="71" cy="55" r="4" fill="#2B2440"/><path d="M53 68 Q60 73 67 68" stroke="#2B2440" stroke-width="3.2" fill="none" stroke-linecap="round"/></g>
+          <g id="go-face-focus" style="display:none"><path d="M44 55 Q49 51 54 55" stroke="#2B2440" stroke-width="3.2" stroke-linecap="round" fill="none"/><path d="M66 55 Q71 51 76 55" stroke="#2B2440" stroke-width="3.2" stroke-linecap="round" fill="none"/><path d="M54 69 Q60 72 66 69" stroke="#2B2440" stroke-width="3.2" stroke-linecap="round" fill="none"/></g>
+        </svg>
       </button>
+      <div class="tile wide streak-bar" id="streak-bar" style="background:#fff;display:none"></div>
       <button class="tile tile-btn" id="dday-tile" style="background:var(--pink-soft)" aria-label="주요 일정 관리">
         <span class="t-lbl">주요 일정</span>
         <div id="dday-rows"></div>

@@ -38,6 +38,12 @@ function fmtMin(min){
   if(h) return `${h}시간`;
   return `${m}분`;
 }
+// 막대그래프용: 00시간 00분 고정 형식
+function fmtHM(min){
+  min = Math.round(min);
+  const h = Math.floor(min/60), m = min%60;
+  return h ? `${h}시간 ${pad(m)}분` : `${m}분`;
+}
 
 /* ═════════ 상태 ═════════ */
 const S = { user:null, cats:[], subjects:[], todos:[], assignments:[], sessions:[], lectures:[], episodes:[], ddays:[] };
@@ -65,14 +71,23 @@ function toast(msg){
   clearTimeout(toastTimer);
   toastTimer = setTimeout(() => t.classList.remove('show'), 2600);
 }
-function save(q){
-  Promise.resolve(q)
-    .then(({error}) => { if(error){ console.error(error); toast('저장에 실패했어요'); } })
-    .catch(e => { console.error(e); toast('저장에 실패했어요'); });
+// 실패 시 0.8초 → 1.6초 → 3.2초 간격으로 자동 재시도
+function save(build){
+  const run = n => Promise.resolve(build())
+    .then(({error}) => {
+      if(!error) return;
+      if(error.code === '23505') return; // 이미 저장된 재시도 중복 → 성공 취급
+      throw error;
+    })
+    .catch(e => {
+      if(n < 3){ setTimeout(() => run(n+1), 800 * 2**n); }
+      else{ console.error(e); toast('저장에 실패했어요 — 네트워크 확인 후 새로고침 해주세요'); }
+    });
+  run(0);
 }
-const ins = (table,rows) => save(sb.from(table).insert(rows));
-const upd = (table,id,patch) => save(sb.from(table).update(patch).eq('id',id));
-const del = (table,id) => save(sb.from(table).delete().eq('id',id));
+const ins = (table,rows) => save(() => sb.from(table).insert(rows));
+const upd = (table,id,patch) => save(() => sb.from(table).update(patch).eq('id',id));
+const del = (table,id) => save(() => sb.from(table).delete().eq('id',id));
 
 /* 로컬 캐스케이드 삭제 (DB는 FK cascade가 처리) */
 function removeTodoLocal(id){
@@ -163,9 +178,33 @@ function renderHome(){
     ? `${esc(name)}님, 오늘도<br>별이랑 시작해요 ⭐`
     : `오늘도 별이랑<br>시작해요 ⭐`;
 
-  // 공부 시작하기
+  // 공부 시작하기 (타이머 상태 연동)
+  const running = !!T.startAt, paused = !running && T.base > 0;
+  const curSubj = subjById(T.subjId);
   const recent = recentSubject();
-  $('#go-recent').textContent = recent ? `${recent.name} · 이어서 하기` : '';
+  $('#go-title').textContent = running ? '공부하는 중' : paused ? '잠깐 쉬는 중' : '공부 시작하기';
+  $('#go-recent').textContent = (running || paused) && curSubj
+    ? curSubj.name
+    : (recent ? `${recent.name} · 이어서 하기` : '');
+  $('#go-face-focus').style.display = running ? '' : 'none';
+  $('#go-face-idle').style.display = running ? 'none' : '';
+
+  // 연속 스트릭 바
+  const sbEl = $('#streak-bar');
+  if(!S.sessions.length){
+    sbEl.style.display = 'none';
+  }else{
+    sbEl.style.display = 'flex';
+    const st = currentStreak();
+    if(st > 0){
+      sbEl.innerHTML = `<span class="sb-num">🔥 ${st}일 연속</span><span class="sb-msg">잘하고 있어요!</span>`;
+    }else{
+      let last = '';
+      for(const s of S.sessions){ const d = dateOfIso(s.started_at); if(d > last) last = d; }
+      const ld = parseYmd(last);
+      sbEl.innerHTML = `<span class="sb-num">마지막 공부일 ${ld.getMonth()+1}.${ld.getDate()}</span><span class="sb-msg">정신 차리세요!</span>`;
+    }
+  }
 
   // D-day (다가오는 일정 2개)
   const today = todayStr();
@@ -278,22 +317,19 @@ function renderWeek(){
   row.innerHTML = Array.from({length:7}, (_,i) => {
     const d = addDays(mon, i), ds = ymd(d);
     const isToday = ds === today;
-    let list = (per.get(ds) || []).slice().sort(byCreated);
-    // 완료된 배정은 다음날부터 자동으로 숨김 (이번 주 보기에서만; 기록은 유지)
-    if(isCur && ds < today) list = list.filter(a => !a.done);
+    const list = (per.get(ds) || []).slice().sort(byCreated);
     return `<div class="day-col ${isToday?'today':''} ${isCur?'':'past'}" data-date="${ds}">
       <div class="day-head"><span class="dow">${DOW[i]}</span><span class="date">${d.getMonth()+1}.${d.getDate()}${isToday?' · 오늘':''}</span></div>
       ${list.map(a => {
         const t = todoById(a.todo_id); if(!t) return '';
-        return `<div class="w-todo">
-          <button class="chk ${a.done?'on':''}" ${isCur?`onclick="toggleAsg('${a.id}')"`:'disabled'} aria-label="완료 체크">✓</button>
-          <span class="tag" style="background:${subjColor(t.subject_id)}"></span>
+        return `<div class="w-todo ${a.done?'done':''}" data-asg="${a.id}" style="background:${subjColor(t.subject_id)}30"
+          role="button" aria-label="완료 토글">
           <span class="${a.done?'done-txt':''}">${esc(t.text)}</span>
-          ${isCur?`<button class="w-del" onclick="removeAsg('${a.id}')" aria-label="배정 해제">✕</button>`:''}
         </div>`;
       }).join('')}
     </div>`;
   }).join('');
+  if(isCur) row.querySelectorAll('.w-todo').forEach(bindWTodo);
 
   // 오늘 칸이 보이도록: 첫 표시 때는 오늘 위치로, 이후에는 스크롤 유지
   if(isCur && !UI.weekScrolled){
@@ -320,6 +356,61 @@ function removeAsg(id){
   del('assignments', id);
   renderAll();
 }
+// 드래그 중 화면 가장자리에 닿으면 주간 행 자동 스크롤
+function edgeScrollWeek(ev){
+  const row = $('#week-row');
+  const r = row.getBoundingClientRect();
+  if(ev.clientX > r.right - 48) row.scrollLeft += 14;
+  else if(ev.clientX < r.left + 48) row.scrollLeft -= 14;
+}
+// 배정 카드: 탭 = 완료 토글, 수평 드래그 = 다른 요일로 이동
+function bindWTodo(el){
+  el.addEventListener('pointerdown', e => {
+    const asgId = el.dataset.asg;
+    const sx = e.clientX, sy = e.clientY;
+    let dragging = false, ghost = null, canceled = false;
+    el.setPointerCapture(e.pointerId);
+    const mv = ev => {
+      const dx = ev.clientX - sx, dy = ev.clientY - sy;
+      if(!dragging && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)*1.2){
+        dragging = true;
+        ghost = el.cloneNode(true); ghost.classList.add('ghost-drag');
+        ghost.style.width = el.offsetWidth+'px';
+        document.body.appendChild(ghost);
+      }
+      if(dragging){
+        ev.preventDefault();
+        ghost.style.left = ev.clientX+'px'; ghost.style.top = ev.clientY+'px';
+        edgeScrollWeek(ev);
+        $$('.day-col').forEach(c => c.classList.remove('hover'));
+        const t = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-col:not(.past)');
+        if(t) t.classList.add('hover');
+      }
+    };
+    const cleanup = () => {
+      el.removeEventListener('pointermove', mv);
+      el.removeEventListener('pointerup', up);
+      el.removeEventListener('pointercancel', cancel);
+      $$('.day-col').forEach(c => c.classList.remove('hover'));
+      if(ghost) ghost.remove();
+    };
+    const cancel = () => { canceled = true; cleanup(); };
+    const up = ev => {
+      cleanup();
+      if(canceled) return;
+      if(!dragging){ toggleAsg(asgId); return; }
+      const t = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-col:not(.past)');
+      if(t){
+        const date = t.dataset.date;
+        const a = S.assignments.find(x => x.id === asgId);
+        if(a && a.date !== date){ a.date = date; upd('assignments', asgId, {date}); renderAll(); }
+      }
+    };
+    el.addEventListener('pointermove', mv);
+    el.addEventListener('pointerup', up);
+    el.addEventListener('pointercancel', cancel);
+  });
+}
 
 /* ── 할일 담기 풀 + 드래그 ── */
 function poolItems(sid){
@@ -327,6 +418,11 @@ function poolItems(sid){
   const all = S.todos.filter(t => t.subject_id === sid && !t.done);
   return all.filter(t => t.parent_id || !all.some(c => c.parent_id === t.id))
     .sort(bySort);
+}
+// 이번 주 범위에서 이 할일의 배정 찾기 (할일 하나 = 요일 하나)
+function weekAssignmentOf(todoId){
+  const mon = ymd(mondayOf(new Date(), 0)), sun = ymd(addDays(mondayOf(new Date(), 0), 6));
+  return S.assignments.find(a => a.todo_id === todoId && a.date >= mon && a.date <= sun);
 }
 function renderPool(){
   const doing = doingSubjects();
@@ -337,48 +433,71 @@ function renderPool(){
   $$('#pool-chips [data-pool]').forEach(ch => ch.addEventListener('click', () => {
     UI.poolSubj = ch.dataset.pool; renderPool();
   }));
-  $('#pool').innerHTML = UI.poolSubj ? poolItems(UI.poolSubj).map(t =>
-    `<span class="pool-item" data-todo="${t.id}">
-      <span class="tag" style="background:${subjColor(UI.poolSubj)}"></span>${esc(t.text)}</span>`).join('') : '';
+  $('#pool').innerHTML = UI.poolSubj ? poolItems(UI.poolSubj).map(t => {
+    const asg = weekAssignmentOf(t.id);
+    const monMid = parseYmd(ymd(mondayOf(new Date(), 0)));
+    const dayLbl = asg ? DOW[Math.round((parseYmd(asg.date) - monMid) / 86400000)] : '';
+    return `<span class="pool-item ${asg?'assigned':''}" data-todo="${t.id}">
+      <span class="tag" style="background:${subjColor(UI.poolSubj)}"></span>${esc(t.text)}${asg?`<b class="pi-day">${dayLbl}</b>`:''}</span>`;
+  }).join('') : '';
   bindPoolDrag();
 }
-let gDrag = null, dragTodo = null;
+// 알약: 탭 = 배정 해제(담긴 경우), 드래그 = 요일 배정/이동
 function bindPoolDrag(){
   $$('.pool-item').forEach(it => {
     it.addEventListener('pointerdown', e => {
-      dragTodo = it.dataset.todo;
-      gDrag = it.cloneNode(true); gDrag.classList.add('ghost-drag');
-      document.body.appendChild(gDrag); movePool(e);
+      const todoId = it.dataset.todo;
+      const sx = e.clientX, sy = e.clientY;
+      let dragging = false, ghost = null, canceled = false;
+      const mv = ev => {
+        if(!dragging && Math.hypot(ev.clientX-sx, ev.clientY-sy) > 10){
+          dragging = true;
+          ghost = it.cloneNode(true); ghost.classList.add('ghost-drag');
+          document.body.appendChild(ghost);
+        }
+        if(dragging){
+          ghost.style.left = ev.clientX+'px'; ghost.style.top = ev.clientY+'px';
+          edgeScrollWeek(ev);
+          $$('.day-col').forEach(c => c.classList.remove('hover'));
+          const col = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-col:not(.past)');
+          if(col) col.classList.add('hover');
+        }
+      };
+      const cleanup = () => {
+        it.removeEventListener('pointermove', mv);
+        it.removeEventListener('pointerup', up);
+        it.removeEventListener('pointercancel', cancel);
+        $$('.day-col').forEach(c => c.classList.remove('hover'));
+        if(ghost) ghost.remove();
+      };
+      const cancel = () => { canceled = true; cleanup(); };
+      const up = ev => {
+        cleanup();
+        if(canceled) return;
+        const existing = weekAssignmentOf(todoId);
+        if(!dragging){
+          // 탭: 담겨 있으면 해제
+          if(existing) removeAsg(existing.id);
+          return;
+        }
+        const col = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-col:not(.past)');
+        if(!col) return;
+        const date = col.dataset.date;
+        if(existing){
+          if(existing.date !== date){ existing.date = date; upd('assignments', existing.id, {date}); renderAll(); }
+        }else{
+          const row = { id:uid(), user_id:S.user.id, todo_id:todoId, date, done:false };
+          S.assignments.push({...row, created_at:new Date().toISOString()});
+          ins('assignments', row);
+          renderAll();
+        }
+      };
       it.setPointerCapture(e.pointerId);
-      it.addEventListener('pointermove', movePool);
-      it.addEventListener('pointerup', dropPool, {once:true});
+      it.addEventListener('pointermove', mv);
+      it.addEventListener('pointerup', up);
+      it.addEventListener('pointercancel', cancel);
     });
   });
-}
-function movePool(e){
-  if(gDrag){ gDrag.style.left = e.clientX+'px'; gDrag.style.top = e.clientY+'px'; }
-  $$('.day-col').forEach(c => c.classList.remove('hover'));
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const col = el && el.closest('.day-col:not(.past)');
-  if(col) col.classList.add('hover');
-}
-function dropPool(e){
-  const el = document.elementFromPoint(e.clientX, e.clientY);
-  const col = el && el.closest('.day-col:not(.past)');
-  if(col && dragTodo){
-    const date = col.dataset.date;
-    if(S.assignments.some(a => a.todo_id === dragTodo && a.date === date)){
-      toast('이미 그 날에 담겨 있어요');
-    }else{
-      const row = { id:uid(), user_id:S.user.id, todo_id:dragTodo, date, done:false };
-      S.assignments.push({...row, created_at:new Date().toISOString()});
-      ins('assignments', row);
-      renderAll();
-    }
-  }
-  $$('.day-col').forEach(c => c.classList.remove('hover'));
-  if(gDrag){ gDrag.remove(); gDrag = null; }
-  dragTodo = null;
 }
 
 /* ═════════ ③ 타이머 ═════════ */
@@ -449,7 +568,7 @@ function onStartPause(){
     if(!T.firstStart) T.firstStart = T.startAt;
     startTick();
   }
-  persistTimer(); renderTimer();
+  persistTimer(); renderTimer(); renderHome();
 }
 function onEnd(){
   if(T.startAt){ T.base += Date.now() - T.startAt; T.startAt = null; }
@@ -549,7 +668,7 @@ function renderDayCard(y, mo){
   if(UI.selDay === null){
     const map = minutesBySubject(ds => { const d = parseYmd(ds); return d.getFullYear() === y && d.getMonth() === mo; });
     box.innerHTML = `<div class="day-title"><span class="tt">과목별 시간</span><span class="tot">${mo+1}월 전체</span></div>`
-      + (map.size ? barRows(map, m => `${(m/60).toFixed(1)}h`) : '');
+      + (map.size ? barRows(map, fmtHM) : '');
     return;
   }
   const ds = ymd(new Date(y, mo, UI.selDay));
@@ -557,7 +676,7 @@ function renderDayCard(y, mo){
   let total = 0; map.forEach(v => total += v);
   const doneAsg = S.assignments.filter(a => a.date === ds && a.done);
   box.innerHTML = `<div class="day-title"><span class="tt">과목별 시간</span><span class="tot">${mo+1}월 ${UI.selDay}일 · 총 ${fmtMin(total)}</span></div>`
-    + barRows(map, fmtMin)
+    + barRows(map, fmtHM)
     + (doneAsg.length ? `<div class="day-done"><p class="dd-t">이날 한 일</p>
         ${doneAsg.map(a => { const t = todoById(a.todo_id); return t
           ? `<div class="todo-line"><button class="chk on" disabled>✓</button><span class="done-txt">${esc(t.text)}</span></div>` : ''; }).join('')}
@@ -566,7 +685,7 @@ function renderDayCard(y, mo){
 
 /* ═════════ ⑤ 과목 관리 ═════════ */
 function renderFilters(){
-  $('#filters').innerHTML = ['전체','하는중','예정','다함'].map(f =>
+  $('#filters').innerHTML = ['전체','하는중','예정','다함','인강'].map(f =>
     `<button class="f-chip ${f===UI.filter?'on':''}" onclick="setFilter('${f}')">${f}</button>`).join('');
 }
 function setFilter(f){ UI.filter = f; renderFilters(); renderSubjects(); }
@@ -590,39 +709,72 @@ function ghostLineHtml(sid, parentId){
       onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"></span>
   </div>`;
 }
-function lecBlockHtml(L){
+function lecStats(L){
   const eps = S.episodes.filter(e => e.lecture_id === L.id).sort((a,b) => a.no - b.no);
   const on = eps.filter(e => e.done).length;
+  return { eps, on, complete: L.total_count > 0 && on >= L.total_count };
+}
+function lecBlockHtml(L){
+  const { eps, on } = lecStats(L);
   const open = UI.openLec.has(L.id);
   return `
     <div class="lec-head" onclick="toggleLec(event,'${L.id}')">
       <span class="t">🎧 ${esc(L.name)}</span>
       <span class="lec-prog">${on} / ${L.total_count}강</span>
     </div>
-    <div class="lec-track"><div class="lec-fill" style="width:${Math.round(on/Math.max(1,L.total_count)*100)}%"></div></div>
+    <div class="lec-track"><div class="lec-fill" style="width:${Math.round(on/Math.max(1,L.total_count)*100)}%;background:${subjColor(L.subject_id)}"></div></div>
     <div class="lec-grid ${open?'show':''}">
       ${eps.map(e => `<button class="lec ${e.done?'on':''}" onclick="lecTgl(event,'${e.id}')">${e.no}강</button>`).join('')}
     </div>`;
 }
+// 인강 탭: 전체 인강 카드 (완주한 것도 '수강 완료!'로 표시)
+function lectureCardHtml(L){
+  const { eps, on, complete } = lecStats(L);
+  const color = subjColor(L.subject_id);
+  const open = UI.openLec.has(L.id);
+  return `<div class="subj-card ${open?'open':''}" onclick="toggleLecCard(event,'${L.id}')">
+    <div class="subj-top"><span class="tag" style="background:${color}"></span>
+      <span class="nm">🎧 ${esc(L.name)}<small class="lec-subj">${esc(subjName(L.subject_id))}</small></span>
+      <span class="lec-prog">${complete ? '수강 완료!' : `${on} / ${L.total_count}강`}</span></div>
+    <div class="lec-track" style="margin:12px 0 2px"><div class="lec-fill" style="width:${Math.round(on/Math.max(1,L.total_count)*100)}%;background:${color}"></div></div>
+    <div class="subj-detail">
+      <div class="lec-grid show">
+        ${eps.map(e => `<button class="lec ${e.done?'on':''}" onclick="lecTgl(event,'${e.id}')">${e.no}강</button>`).join('')}
+      </div>
+    </div>
+  </div>`;
+}
+function toggleLecCard(e, id){
+  if(e.target.closest('.lec')) return;
+  UI.openLec.has(id) ? UI.openLec.delete(id) : UI.openLec.add(id);
+  renderSubjects();
+}
 function renderSubjects(){
   const box = $('#subj-list');
+  if(UI.filter === '인강'){
+    box.innerHTML = S.lectures.slice().sort(byCreated).map(L => lectureCardHtml(L)).join('');
+    return;
+  }
   box.innerHTML = S.cats.slice().sort(bySort).map(cat => {
     let subs = S.subjects.filter(s => s.category_id === cat.id).sort(bySort);
     if(UI.filter !== '전체') subs = subs.filter(s => s.status === UI.filter);
     if(!subs.length) return '';
     return `<p class="cat-lbl">${esc(cat.name)}</p>` + subs.map(s => {
       const bigs = S.todos.filter(t => t.subject_id === s.id && !t.parent_id).sort(bySort);
-      const lecs = S.lectures.filter(l => l.subject_id === s.id).sort(byCreated);
+      // 완주한 인강은 과목 카드에서는 숨김 (인강 탭에서 확인)
+      const lecs = S.lectures.filter(l => l.subject_id === s.id).sort(byCreated).filter(L => !lecStats(L).complete);
       return `<div class="subj-card ${UI.openSubj.has(s.id)?'open':''}" onclick="toggleCard(event,'${s.id}')">
         <div class="subj-top"><span class="tag" style="background:${s.color}"></span>
           <span class="nm">${esc(s.name)}</span><span class="badge b-${s.status}">${s.status}</span></div>
         <div class="subj-detail">
           <div class="td-box">
             ${bigs.map(t => `
-              ${todoLineHtml(t, true)}
-              <div class="sub-todos">
-                ${S.todos.filter(c => c.parent_id === t.id).sort(bySort).map(c => todoLineHtml(c, false)).join('')}
-                ${ghostLineHtml(s.id, t.id)}
+              <div class="todo-group">
+                ${todoLineHtml(t, true)}
+                <div class="sub-todos">
+                  ${S.todos.filter(c => c.parent_id === t.id).sort(bySort).map(c => todoLineHtml(c, false)).join('')}
+                  ${ghostLineHtml(s.id, t.id)}
+                </div>
               </div>`).join('')}
             ${ghostLineHtml(s.id, null)}
           </div>
@@ -655,10 +807,11 @@ function tdChk(e, id){
   renderAll();
 }
 function tdEdit(el, id){
-  const t = todoById(id);
+  const t = todoById(id); if(!t) return;
   const v = el.textContent.trim();
-  if(t && v && v !== t.text){ t.text = v; upd('todos', id, {text:v}); }
-  renderAll();
+  if(v && v !== t.text){ t.text = v; upd('todos', id, {text:v}); renderAll(); }
+  else if(!v){ el.textContent = t.text; }
+  // 변경 없으면 재렌더하지 않음 (작은 할일 입력칸으로 포커스 이동 유지)
 }
 function tdGhost(el, sid, parentId){
   const v = el.textContent.trim();
@@ -915,7 +1068,7 @@ function lecTotal(el, id){
   const over = eps.filter(e => e.no > n);
   if(over.length){
     S.episodes = S.episodes.filter(e => !(e.lecture_id === id && e.no > n));
-    save(sb.from('lecture_episodes').delete().eq('lecture_id', id).gt('no', n));
+    save(() => sb.from('lecture_episodes').delete().eq('lecture_id', id).gt('no', n));
   }
   const missing = [];
   for(let i = 1; i <= n; i++)
@@ -1027,9 +1180,25 @@ $('#login-form').addEventListener('submit', async e => {
 /* 인라인 핸들러 노출 */
 Object.assign(window, {
   toggleAsg, removeAsg, pickDay, setFilter, toggleCard, tdChk, tdEdit, tdGhost,
-  toggleLec, lecTgl, catEdit, catGhost, subjEdit, subjGhost, cycleStatus,
+  toggleLec, toggleLecCard, lecTgl, catEdit, catGhost, subjEdit, subjGhost, cycleStatus,
   togglePick, pickColor, startSubjDrag, lecEdit, lecTotal, addLecSet,
   ddayEdit, ddayDate, ddayGhost,
 });
+
+/* 작은 할일 입력칸: 해당 할일 그룹에 포커스가 있을 때만 표시 */
+{
+  const list = $('#subj-list');
+  let ghostHideTimer;
+  list.addEventListener('focusin', e => {
+    const g = e.target.closest('.todo-group');
+    clearTimeout(ghostHideTimer);
+    $$('#subj-list .todo-group.show').forEach(x => { if(x !== g) x.classList.remove('show'); });
+    if(g) g.classList.add('show');
+  });
+  list.addEventListener('focusout', () => {
+    ghostHideTimer = setTimeout(() =>
+      $$('#subj-list .todo-group.show').forEach(x => x.classList.remove('show')), 250);
+  });
+}
 
 boot();
