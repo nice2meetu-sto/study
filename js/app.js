@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=14';
+import { sb, fetchAll } from './api.js?v=15';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -743,7 +743,7 @@ function renderMonth(){
     if(dt > today && ds !== todayStr()){ html += `<div class="day num">${d}</div>`; continue; }
     const min = per.get(ds) || 0, v = level(min);
     if(v === 0){ html += '<div class="day"></div>'; continue; }
-    const face = v <= 1 ? 'basic' : v >= 5 ? 'best' : 'happy';
+    const face = v <= 2 ? 'basic' : v >= 5 ? 'best' : 'happy'; // ~4h 기본, ~8h 눈웃음, 초과 >_<
     html += `<div class="day clickable ${UI.selDay===d?'sel':''}" style="background:${LV[Math.max(1,v-1)]}55"
       onclick="pickDay(${d})" role="button" aria-label="${mo+1}월 ${d}일 기록">${starSVG(LV[v], face)}</div>`;
   }
