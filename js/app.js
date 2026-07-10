@@ -1,12 +1,12 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=13';
+import { sb, fetchAll } from './api.js?v=14';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
 const STATUSES = ['예정','하는중','다함'];
-const LV = ['#F1EDE6','#FFF3D1','#FFE9AE','#FFD983','#F2BE4E'];
+const LV = ['#F1EDE6','#FFF3D1','#FFE9AE','#FFD983','#F2BE4E','#F08A3C'];
 const DOW = ['월','화','수','목','금','토','일'];
 const GRAY = '#D8D2C6';
 
@@ -29,8 +29,15 @@ function weekLabel(mon){
   const thu = addDays(mon,3);
   return `${thu.getMonth()+1}월 ${Math.floor((thu.getDate()-1)/7)+1}주차`;
 }
-// 공부량 5단계 (분): 0 / ~1h / ~2h / ~3.5h / 그 이상
-function level(min){ if(min<=0) return 0; if(min<=60) return 1; if(min<=120) return 2; if(min<=210) return 3; return 4; }
+// 공부량 6단계 (분): 0 / ~2h / ~4h / ~6h / ~8h / 그 이상(주황)
+function level(min){
+  if(min<=0) return 0;
+  if(min<=120) return 1;
+  if(min<=240) return 2;
+  if(min<=360) return 3;
+  if(min<=480) return 4;
+  return 5;
+}
 function fmtMin(min){
   min = Math.round(min);
   const h = Math.floor(min/60), m = min%60;
@@ -684,9 +691,12 @@ function minMonthOffset(){
   const now = new Date();
   return (f.getFullYear() - now.getFullYear())*12 + (f.getMonth() - now.getMonth());
 }
-function starSVG(fill, happy){
-  const eyes = happy
-    ? '<path d="M22 26 Q25 23 28 26" stroke="#2B2440" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M32 26 Q35 23 38 26" stroke="#2B2440" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
+// 표정: basic(입만 웃음) / happy(눈도 웃음) / best(>_<)
+function starSVG(fill, face){
+  const eyes = face === 'best'
+    ? '<path d="M21 23.5 L26 27 L21 30.5" stroke="#2B2440" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/><path d="M39 23.5 L34 27 L39 30.5" stroke="#2B2440" stroke-width="2.4" fill="none" stroke-linecap="round" stroke-linejoin="round"/>'
+    : face === 'happy'
+    ? '<path d="M22 27 Q25 24 28 27" stroke="#2B2440" stroke-width="2.4" fill="none" stroke-linecap="round"/><path d="M32 27 Q35 24 38 27" stroke="#2B2440" stroke-width="2.4" fill="none" stroke-linecap="round"/>'
     : '<circle cx="24" cy="27" r="2.5" fill="#2B2440"/><circle cx="36" cy="27" r="2.5" fill="#2B2440"/>';
   return `<svg viewBox="0 0 60 58"><path d="M30 9 L35.9 20.9 L49 22.8 L39.5 32.1 L41.8 45.2 L30 39 L18.2 45.2 L20.5 32.1 L11 22.8 L24.1 20.9 Z"
     fill="${fill}" stroke="${fill}" stroke-width="15" stroke-linejoin="round"/>${eyes}
@@ -733,8 +743,9 @@ function renderMonth(){
     if(dt > today && ds !== todayStr()){ html += `<div class="day num">${d}</div>`; continue; }
     const min = per.get(ds) || 0, v = level(min);
     if(v === 0){ html += '<div class="day"></div>'; continue; }
+    const face = v <= 1 ? 'basic' : v >= 5 ? 'best' : 'happy';
     html += `<div class="day clickable ${UI.selDay===d?'sel':''}" style="background:${LV[Math.max(1,v-1)]}55"
-      onclick="pickDay(${d})" role="button" aria-label="${mo+1}월 ${d}일 기록">${starSVG(LV[v], d%3===0)}</div>`;
+      onclick="pickDay(${d})" role="button" aria-label="${mo+1}월 ${d}일 기록">${starSVG(LV[v], face)}</div>`;
   }
   g.innerHTML = html;
   renderDayCard(y, mo);
