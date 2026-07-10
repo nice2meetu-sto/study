@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#FAF6F0">
+<title>공부의 별</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 110%22><path d=%22M60 14 L72.9 40.2 L101.8 44.4 L80.9 64.8 L85.9 93.6 L60 80 L34.1 93.6 L39.1 64.8 L18.2 44.4 L47.1 40.2 Z%22 fill=%22%23FFD983%22 stroke=%22%23FFD983%22 stroke-width=%2228%22 stroke-linejoin=%22round%22/></svg>">
+<link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
+<link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+
+<!-- ═══════════ 로그인 ═══════════ -->
+<div id="login" style="display:none">
+  <div class="login-card">
+    <svg width="96" height="88" viewBox="0 0 120 110" aria-hidden="true">
+      <path d="M60 14 L72.9 40.2 L101.8 44.4 L80.9 64.8 L85.9 93.6 L60 80 L34.1 93.6 L39.1 64.8 L18.2 44.4 L47.1 40.2 Z"
+            fill="#FFD983" stroke="#FFD983" stroke-width="28" stroke-linejoin="round"/>
+      <circle cx="48" cy="54" r="4.3" fill="#2B2440"/><circle cx="72" cy="54" r="4.3" fill="#2B2440"/>
+      <path d="M52 68 Q60 74 68 68" stroke="#2B2440" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+      <circle cx="38" cy="64" r="4.6" fill="#FFB08A" opacity=".6"/><circle cx="82" cy="64" r="4.6" fill="#FFB08A" opacity=".6"/>
+    </svg>
+    <h1 class="login-title">공부의 별</h1>
+    <form id="login-form">
+      <input id="login-email" type="email" placeholder="이메일" autocomplete="email" required>
+      <input id="login-pw" type="password" placeholder="비밀번호" autocomplete="current-password" required>
+      <button type="submit" class="btn login-btn" id="login-btn">로그인</button>
+    </form>
+    <p class="login-err" id="login-err"></p>
+  </div>
+</div>
+
+<!-- ═══════════ 앱 ═══════════ -->
+<div id="app" style="display:none">
+
+  <!-- ① 홈 -->
+  <section class="screen active" id="scr-home">
+    <p class="eyebrow" id="home-date"></p>
+    <h1 class="display" id="home-greet"></h1>
+    <div class="home-grid">
+      <button class="go-timer" id="go-timer">
+        <span>공부 시작하기<small id="go-recent"></small></span>
+        <svg width="48" height="44" viewBox="0 0 120 110" aria-hidden="true"><path d="M60 14 L72.9 40.2 L101.8 44.4 L80.9 64.8 L85.9 93.6 L60 80 L34.1 93.6 L39.1 64.8 L18.2 44.4 L47.1 40.2 Z" fill="#FFD983" stroke="#FFD983" stroke-width="28" stroke-linejoin="round"/><circle cx="49" cy="55" r="4" fill="#2B2440"/><circle cx="71" cy="55" r="4" fill="#2B2440"/><path d="M53 68 Q60 73 67 68" stroke="#2B2440" stroke-width="3.2" fill="none" stroke-linecap="round"/></svg>
+      </button>
+      <button class="tile tile-btn" id="dday-tile" style="background:var(--pink-soft)" aria-label="주요 일정 관리">
+        <span class="t-lbl">주요 일정</span>
+        <div id="dday-rows"></div>
+      </button>
+      <div class="tile" style="background:#fff">
+        <span class="t-lbl" id="heat-lbl">공부 달력</span>
+        <div class="heat" id="heat"></div>
+      </div>
+      <div class="tile wide" style="background:#fff">
+        <span class="t-lbl" id="home-todo-lbl">오늘의 할일</span>
+        <div id="home-todos"></div>
+      </div>
+    </div>
+  </section>
+
+  <!-- ② 위클리 플랜 -->
+  <section class="screen" id="scr-week">
+    <div class="page-head">
+      <div><p class="eyebrow">위클리 플랜</p><h1 class="display">이번 주 계획 🗓️</h1></div>
+    </div>
+    <div class="pager" style="margin-top:12px">
+      <button id="wk-prev" aria-label="이전 주">‹</button>
+      <span class="p-lbl" id="wk-lbl"></span>
+      <button id="wk-next" aria-label="다음 주">›</button>
+    </div>
+    <div class="week-scroll" id="week-row"></div>
+    <div class="card pool-card" id="pool-card">
+      <p class="sec-title">과목별 할일 담기</p>
+      <div class="chips" style="margin-top:0" id="pool-chips"></div>
+      <div class="pool-items" id="pool"></div>
+    </div>
+  </section>
+
+  <!-- ③ 타이머 -->
+  <section class="screen" id="scr-timer">
+    <p class="eyebrow">타이머</p>
+    <h1 class="display">집중할 시간이에요</h1>
+    <div class="hero-timer" id="hero-timer">
+      <svg id="star-main" width="118" height="108" viewBox="0 0 120 110" aria-hidden="true">
+        <path d="M60 14 L72.9 40.2 L101.8 44.4 L80.9 64.8 L85.9 93.6 L60 80 L34.1 93.6 L39.1 64.8 L18.2 44.4 L47.1 40.2 Z"
+              fill="#FFD983" stroke="#FFD983" stroke-width="28" stroke-linejoin="round"/>
+        <g id="face-idle">
+          <circle cx="48" cy="54" r="4.3" fill="#2B2440"/><circle cx="72" cy="54" r="4.3" fill="#2B2440"/>
+          <path d="M52 68 Q60 74 68 68" stroke="#2B2440" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+          <circle cx="38" cy="64" r="4.6" fill="#FFB08A" opacity=".6"/><circle cx="82" cy="64" r="4.6" fill="#FFB08A" opacity=".6"/>
+        </g>
+        <g id="face-focus" style="display:none">
+          <path d="M43 54 Q48 50 53 54" stroke="#2B2440" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+          <path d="M67 54 Q72 50 77 54" stroke="#2B2440" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+          <path d="M53 69 Q60 72 67 69" stroke="#2B2440" stroke-width="3.4" stroke-linecap="round" fill="none"/>
+          <circle cx="38" cy="64" r="4.6" fill="#FFB08A" opacity=".6"/><circle cx="82" cy="64" r="4.6" fill="#FFB08A" opacity=".6"/>
+        </g>
+      </svg>
+      <div class="time" id="clock">00:00:00</div>
+      <div class="time-label" id="clock-label">과목을 고르고 시작을 눌러주세요</div>
+      <button class="btn" id="btn-start">시작하기</button><button class="btn btn-sub" id="btn-end" style="display:none">종료</button>
+    </div>
+    <div class="chips" id="timer-chips"></div>
+    <div class="today-row">
+      <div class="mini-stat" style="background:var(--mint-soft)"><div class="num" id="tm-today">0분</div><div class="lbl">오늘 공부한 시간</div></div>
+      <div class="mini-stat" style="background:var(--lav-soft)"><div class="num" id="tm-streak">0일</div><div class="lbl">연속 공부</div></div>
+    </div>
+  </section>
+
+  <!-- ④ 기록 -->
+  <section class="screen" id="scr-stats">
+    <p class="eyebrow">기록</p>
+    <h1 class="display">이만큼 했어요</h1>
+    <div class="pager" style="margin-top:12px">
+      <button id="mo-prev" aria-label="이전 달">‹</button>
+      <span class="p-lbl" id="mo-lbl"></span>
+      <button id="mo-next" aria-label="다음 달">›</button>
+    </div>
+    <div class="stat-cards" id="mo-stats"></div>
+    <div class="card">
+      <div class="cal-grid" id="cal-grid"></div>
+    </div>
+    <div class="card" style="margin-top:13px" id="day-card"></div>
+  </section>
+
+  <!-- ⑤ 과목 관리 -->
+  <section class="screen" id="scr-subj">
+    <div class="page-head">
+      <div><p class="eyebrow">과목 관리</p><h1 class="display">내 과목 📚</h1></div>
+      <button class="gear-txt" id="btn-set">설정</button>
+    </div>
+    <div class="filters" id="filters"></div>
+    <div id="subj-list"></div>
+  </section>
+
+  <!-- 설정 시트 -->
+  <div class="overlay" id="ovl">
+    <div class="sheet">
+      <div class="sheet-head"><span class="t">설정</span><button id="btn-sheet-close" aria-label="닫기">✕</button></div>
+      <div class="sheet-tabs">
+        <button id="tab-subj" class="on">과목 설정</button>
+        <button id="tab-lec">인강 설정</button>
+      </div>
+      <div id="set-list"></div>
+      <div id="lec-list" style="display:none"></div>
+      <button class="logout-btn" id="btn-logout">로그아웃</button>
+    </div>
+  </div>
+
+  <!-- D-day 관리 시트 -->
+  <div class="overlay" id="ovl-dday">
+    <div class="sheet">
+      <div class="sheet-head"><span class="t">주요 일정</span><button id="btn-dday-close" aria-label="닫기">✕</button></div>
+      <div id="dday-list"></div>
+    </div>
+  </div>
+
+  <!-- 네비 -->
+  <nav>
+    <button class="on" data-scr="scr-home"><span class="ico">🏠</span>홈</button>
+    <button data-scr="scr-week"><span class="ico">🗓️</span>플랜</button>
+    <button data-scr="scr-timer"><span class="ico">⏱️</span>타이머</button>
+    <button data-scr="scr-stats"><span class="ico">📊</span>기록</button>
+    <button data-scr="scr-subj"><span class="ico">📚</span>과목</button>
+  </nav>
+</div>
+
+<div id="toast" role="status"></div>
+
+<script type="module" src="js/app.js"></script>
+</body>
+</html>

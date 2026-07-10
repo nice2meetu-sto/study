@@ -1,0 +1,3 @@
+// Supabase 프로젝트 설정
+export const SUPABASE_URL = 'https://guqfwrfnujrizryrhjtg.supabase.co';
+export const SUPABASE_ANON_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Imd1cWZ3cmZudWpyaXpyeXJoanRnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2ODEyNDEsImV4cCI6MjA5OTI1NzI0MX0.waCEIL3A23mHni7hQWiW_CiQggSdtGkqDFmQdk9dYDA';

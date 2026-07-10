@@ -1,0 +1,44 @@
+# 공부의 별 ⭐
+
+1인용 공부 기록 웹앱. 공부 타이머 + 위클리 플랜 + 통계 + 과목별 할일/인강 관리.
+
+- 프론트엔드: HTML + CSS + vanilla JS (프레임워크 없음, ES 모듈)
+- 백엔드: Supabase (Postgres + REST + Auth, 모든 테이블 RLS 적용)
+- 호스팅: GitHub Pages (정적)
+
+## 처음 한 번만 하면 되는 설정
+
+### 1. Supabase 테이블 만들기
+Supabase 대시보드 → **SQL Editor** → [`supabase/schema.sql`](supabase/schema.sql) 내용 전체를 붙여넣고 **Run**.
+(여러 번 실행해도 안전합니다)
+
+### 2. 로그인 계정 만들기
+Supabase 대시보드 → **Authentication → Users → Add user**
+- 이메일 + 비밀번호 입력, **Auto Confirm User** 체크 후 생성
+- 이 계정으로 앱에 로그인합니다
+- (선택) 혼자만 쓰려면 **Authentication → Sign In / Up** 에서 *Allow new users to sign up* 을 꺼두세요
+- (선택) 홈 인사말에 이름을 띄우려면 해당 유저의 **User Metadata**에 `{"name": "수민"}` 을 추가하세요
+
+### 3. GitHub Pages 켜기
+저장소 **Settings → Pages → Deploy from a branch** → `main` / root 선택.
+잠시 후 `https://<계정>.github.io/study/` 로 접속할 수 있습니다.
+
+## 파일 구성
+
+```
+index.html          앱 셸 (로그인 + 5개 탭 화면 + 시트)
+css/style.css       디자인 (목업 v8 토큰 그대로)
+js/config.js        Supabase URL / anon key
+js/api.js           데이터 레이어 (supabase-js 클라이언트 + 전체 조회 헬퍼)
+js/app.js           앱 로직 (홈 / 플랜 / 타이머 / 기록 / 과목 / 설정 시트)
+supabase/schema.sql 테이블 + 인덱스 + RLS 정책
+```
+
+## 동작 규칙 (스펙 해석 메모)
+
+- **타이머**는 시작 시각 기준(`Date.now() - startAt + base`)으로 계산하고 localStorage에 상태를 저장하므로, 화면이 꺼지거나 새로고침해도 이어서 갑니다. 종료 시에만 세션이 저장됩니다.
+- **배정 체크 ↔ 할일 완료 동기화**: 플랜/홈에서 배정을 체크하면 할일 원본(todos)도 완료 처리됩니다. 과목 페이지에서 할일을 체크하면 오늘 날짜의 배정도 함께 완료됩니다.
+- **완료된 배정 자동 숨김**: 이번 주 보기에서 오늘 이전 날짜의 완료된 배정은 숨겨집니다(레코드는 남아 기록/달성률에 사용). 지난 주 보기는 읽기 전용이며 전체가 표시됩니다.
+- **과목을 삭제해도** 그 과목의 공부 세션 기록은 남고, 통계에서 "삭제된 과목"으로 표시됩니다. (할일·인강·배정은 과목과 함께 삭제)
+- **공부량 5단계**: 0분 / ~1시간 / ~2시간 / ~3.5시간 / 그 이상 — 홈 히트맵과 기록 달력이 같은 스케일을 씁니다.
+- 날짜 경계는 기기 로컬 자정 기준입니다.
