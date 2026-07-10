@@ -42,6 +42,7 @@
     <div class="home-grid">
       <button class="go-timer" id="go-timer">
         <span><span id="go-title">공부 시작하기</span><small id="go-recent"></small></span>
+        <span class="go-time" id="go-time" style="display:none">00:00:00</span>
         <svg width="48" height="44" viewBox="0 0 120 110" aria-hidden="true">
           <path d="M60 14 L72.9 40.2 L101.8 44.4 L80.9 64.8 L85.9 93.6 L60 80 L34.1 93.6 L39.1 64.8 L18.2 44.4 L47.1 40.2 Z" fill="#FFD983" stroke="#FFD983" stroke-width="28" stroke-linejoin="round"/>
           <g id="go-face-idle"><circle cx="49" cy="55" r="4" fill="#2B2440"/><circle cx="71" cy="55" r="4" fill="#2B2440"/><path d="M53 68 Q60 73 67 68" stroke="#2B2440" stroke-width="3.2" fill="none" stroke-linecap="round"/></g>
@@ -103,6 +104,21 @@
           <path d="M67 54 Q72 50 77 54" stroke="#2B2440" stroke-width="3.4" stroke-linecap="round" fill="none"/>
           <path d="M53 69 Q60 72 67 69" stroke="#2B2440" stroke-width="3.4" stroke-linecap="round" fill="none"/>
           <circle cx="38" cy="64" r="4.6" fill="#FFB08A" opacity=".6"/><circle cx="82" cy="64" r="4.6" fill="#FFB08A" opacity=".6"/>
+        </g>
+        <g id="star-study" style="display:none">
+          <path d="M28 89 Q44 81 60 87 Q76 81 92 89 L92 100 Q76 94 60 99 Q44 94 28 100 Z"
+                fill="#fff" stroke="#2B2440" stroke-width="3" stroke-linejoin="round"/>
+          <line x1="60" y1="87" x2="60" y2="99" stroke="#2B2440" stroke-width="2.2"/>
+          <g id="pencil">
+            <line x1="73" y1="66" x2="83" y2="80" stroke="#E8A93C" stroke-width="5.5" stroke-linecap="round"/>
+            <line x1="83" y1="80" x2="86" y2="84" stroke="#2B2440" stroke-width="4.5" stroke-linecap="round"/>
+          </g>
+        </g>
+        <g id="star-break" style="display:none">
+          <rect x="72" y="69" width="17" height="13" rx="4" fill="#fff" stroke="#2B2440" stroke-width="3"/>
+          <path d="M89 72 q6.5 2.5 0 7.5" fill="none" stroke="#2B2440" stroke-width="2.6"/>
+          <path class="steam s1" d="M77 63 q2.5 -3 0 -6.5" stroke="#8C86A3" stroke-width="2.2" fill="none" stroke-linecap="round"/>
+          <path class="steam s2" d="M84 64 q2.5 -3 0 -6.5" stroke="#8C86A3" stroke-width="2.2" fill="none" stroke-linecap="round"/>
         </g>
       </svg>
       <div class="time" id="clock">00:00:00</div>

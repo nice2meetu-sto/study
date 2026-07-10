@@ -187,6 +187,7 @@ function renderHome(){
   $('#go-recent').textContent = (running || paused) && curSubj
     ? curSubj.name
     : (recent ? `${recent.name} · 이어서 하기` : '');
+  $('#go-time').style.display = (running || paused) ? '' : 'none';
   $('#go-face-focus').style.display = running ? '' : 'none';
   $('#go-face-idle').style.display = running ? 'none' : '';
 
@@ -244,13 +245,14 @@ function renderHome(){
     if(!groups.has(key)) groups.set(key, []);
     groups.get(key).push({a, t});
   }
-  $('#home-todos').innerHTML = [...groups.entries()].map(([sid, list]) => `
+  $('#home-todos').innerHTML = groups.size ? [...groups.entries()].map(([sid, list]) => `
     <div class="subj-group">
       <div class="g-lbl"><i style="background:${subjColor(sid)}"></i>${esc(subjName(sid))}</div>
       ${list.map(({a,t}) => `<div class="todo-line">
         <button class="chk ${a.done?'on':''}" onclick="toggleAsg('${a.id}')" aria-label="완료 체크">✓</button>
         <span class="${a.done?'done-txt':''}">${esc(t.text)}</span></div>`).join('')}
-    </div>`).join('');
+    </div>`).join('')
+    : '<p class="todo-empty">오늘의 할일을 추가해보세요</p>';
 }
 
 /* ═════════ D-day 시트 ═════════ */
@@ -549,7 +551,9 @@ function stopTick(){ clearInterval(T.iv); T.iv = null; }
 function elapsedSec(){ return Math.floor((T.base + (T.startAt ? Date.now()-T.startAt : 0)) / 1000); }
 function tick(){
   const s = elapsedSec();
-  $('#clock').textContent = `${pad(Math.floor(s/3600))}:${pad(Math.floor(s%3600/60))}:${pad(s%60)}`;
+  const txt = `${pad(Math.floor(s/3600))}:${pad(Math.floor(s%3600/60))}:${pad(s%60)}`;
+  $('#clock').textContent = txt;
+  $('#go-time').textContent = txt;
   renderTimerStats();
 }
 function setFace(focus){
@@ -564,6 +568,8 @@ function renderTimer(){
   if(running) $('#clock-label').textContent = '별이가 같이 집중하는 중 📚';
   else if(paused) $('#clock-label').textContent = '잠깐 쉬는 중이에요 ☕';
   setFace(running);
+  $('#star-study').style.display = running ? '' : 'none';
+  $('#star-break').style.display = paused ? '' : 'none';
   renderTimerChips();
 }
 function renderTimerChips(){
