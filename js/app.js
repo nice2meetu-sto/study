@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=11';
+import { sb, fetchAll } from './api.js?v=12';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -152,9 +152,17 @@ function longestStreakInMonth(y,mo){
 }
 
 /* ═════════ 화면 전환 ═════════ */
+let enterTimer;
 function goScreen(id){
   $$('nav button').forEach(x => x.classList.toggle('on', x.dataset.scr === id));
-  $$('.screen').forEach(s => s.classList.toggle('active', s.id === id));
+  $$('.screen').forEach(s => {
+    s.classList.toggle('active', s.id === id);
+    s.classList.remove('entering');
+  });
+  // 화면 진입 시에만 카드 등장 애니메이션 (이후 재렌더에는 미적용)
+  $('#'+id).classList.add('entering');
+  clearTimeout(enterTimer);
+  enterTimer = setTimeout(() => $('#'+id).classList.remove('entering'), 700);
   if(id === 'scr-timer' && !T.subjId){
     const recent = recentSubject();
     if(recent){ T.subjId = recent.id; persistTimer(); renderTimer(); }
@@ -417,8 +425,11 @@ function bindWTodo(el){
         ghost.style.left = ev.clientX+'px'; ghost.style.top = ev.clientY+'px';
         edgeScrollWeek(ev);
         $$('.day-col').forEach(c => c.classList.remove('hover'));
-        const t = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-col:not(.past)');
+        const under = document.elementFromPoint(ev.clientX, ev.clientY);
+        const t = under?.closest('.day-col:not(.past)');
         if(t) t.classList.add('hover');
+        // 담기 카드 위 = 배정 해제 표시
+        $('#pool-card').classList.toggle('hover', !!under?.closest('#pool-card'));
       }
     };
     const cleanup = () => {
@@ -426,6 +437,7 @@ function bindWTodo(el){
       el.removeEventListener('pointerup', up);
       el.removeEventListener('pointercancel', cancel);
       $$('.day-col').forEach(c => c.classList.remove('hover'));
+      $('#pool-card').classList.remove('hover');
       if(ghost) ghost.remove();
     };
     const cancel = () => { canceled = true; cleanup(); };
@@ -433,7 +445,9 @@ function bindWTodo(el){
       cleanup();
       if(canceled) return;
       if(!dragging){ toggleAsg(asgId); return; }
-      const t = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-col:not(.past)');
+      const under = document.elementFromPoint(ev.clientX, ev.clientY);
+      if(under?.closest('#pool-card')){ removeAsg(asgId); return; } // 담기로 돌려놓기 = 배정 해제
+      const t = under?.closest('.day-col:not(.past)');
       if(t){
         const date = t.dataset.date;
         const a = S.assignments.find(x => x.id === asgId);
