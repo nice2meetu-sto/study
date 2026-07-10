@@ -8,7 +8,7 @@
 <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 120 110%22><path d=%22M60 14 L72.9 40.2 L101.8 44.4 L80.9 64.8 L85.9 93.6 L60 80 L34.1 93.6 L39.1 64.8 L18.2 44.4 L47.1 40.2 Z%22 fill=%22%23FFD983%22 stroke=%22%23FFD983%22 stroke-width=%2228%22 stroke-linejoin=%22round%22/></svg>">
 <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/orioncactus/pretendard@v1.3.9/dist/web/static/pretendard.min.css">
-<link rel="stylesheet" href="css/style.css?v=7">
+<link rel="stylesheet" href="css/style.css?v=8">
 </head>
 <body>
 
@@ -106,9 +106,9 @@
           <circle cx="38" cy="64" r="4.6" fill="#FFB08A" opacity=".6"/><circle cx="82" cy="64" r="4.6" fill="#FFB08A" opacity=".6"/>
         </g>
         <g id="star-study" style="display:none">
-          <path d="M28 89 Q44 81 60 87 Q76 81 92 89 L92 100 Q76 94 60 99 Q44 94 28 100 Z"
+          <path d="M20 86 Q41 76 60 84 Q79 76 100 86 L100 101 Q79 93 60 99 Q41 93 20 101 Z"
                 fill="#fff" stroke="#2B2440" stroke-width="3" stroke-linejoin="round"/>
-          <line x1="60" y1="87" x2="60" y2="99" stroke="#2B2440" stroke-width="2.2"/>
+          <line x1="60" y1="84" x2="60" y2="99" stroke="#2B2440" stroke-width="2.2"/>
           <g id="pencil">
             <line x1="79" y1="66" x2="89" y2="80" stroke="#E8A93C" stroke-width="5.5" stroke-linecap="round"/>
             <line x1="89" y1="80" x2="92" y2="84" stroke="#2B2440" stroke-width="4.5" stroke-linecap="round"/>
@@ -140,10 +140,13 @@
   <section class="screen" id="scr-stats">
     <p class="eyebrow">기록</p>
     <h1 class="display">이만큼 했어요</h1>
-    <div class="pager" style="margin-top:12px">
-      <button id="mo-prev" aria-label="이전 달">‹</button>
-      <span class="p-lbl" id="mo-lbl"></span>
-      <button id="mo-next" aria-label="다음 달">›</button>
+    <div class="pager-row">
+      <div class="pager">
+        <button id="mo-prev" aria-label="이전 달">‹</button>
+        <span class="p-lbl" id="mo-lbl"></span>
+        <button id="mo-next" aria-label="다음 달">›</button>
+      </div>
+      <button class="day-edit" id="day-edit-btn" style="display:none">수정</button>
     </div>
     <div class="stat-cards" id="mo-stats"></div>
     <div class="card">
@@ -217,6 +220,6 @@
 
 <div id="toast" role="status"></div>
 
-<script type="module" src="js/app.js?v=7"></script>
+<script type="module" src="js/app.js?v=8"></script>
 </body>
 </html>

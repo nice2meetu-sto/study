@@ -128,10 +128,10 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .hero-timer{background:var(--yellow-soft);border-radius:var(--r-lg);padding:26px 20px 22px;text-align:center;margin-top:18px;
   transition:background .3s ease;}
 /* 별이 소품 애니메이션: 연필 사각사각 / 커피 김 모락모락 */
-#pencil{transform-box:fill-box;transform-origin:15% 15%;animation:write .55s ease-in-out infinite alternate;}
-@keyframes write{from{transform:translate(-2.5px,.5px) rotate(-7deg)}to{transform:translate(2.5px,-.5px) rotate(5deg)}}
-.steam{transform-box:fill-box;transform-origin:center bottom;animation:steam 1.7s ease-out infinite;opacity:0;}
-.steam.s2{animation-delay:.6s;}
+#pencil{transform-box:fill-box;transform-origin:15% 15%;animation:write 1s ease-in-out infinite alternate;}
+@keyframes write{from{transform:translate(-7px,2px) rotate(-13deg)}to{transform:translate(6px,-2px) rotate(9deg)}}
+.steam{transform-box:fill-box;transform-origin:center bottom;animation:steam 2s ease-out infinite;opacity:0;}
+.steam.s2{animation-delay:1s;}
 @keyframes steam{0%{opacity:0;transform:translateY(4px) scale(.85)}35%{opacity:.85}100%{opacity:0;transform:translateY(-7px) scale(1.05)}}
 .time{font-family:'Jua';font-size:50px;letter-spacing:1px;margin:4px 0 2px;}
 .time-label{font-size:13px;color:var(--sub);margin-bottom:16px;}
@@ -169,8 +169,9 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .day-title{display:flex;align-items:baseline;justify-content:space-between;margin-bottom:12px;}
 .day-title .tt{font-family:'Jua';font-size:16px;}
 .day-title .tot{font-size:12.5px;color:var(--sub);font-weight:600;}
-.day-edit{border:none;background:#F1EDE6;border-radius:8px;padding:4px 9px;font-size:11px;font-weight:700;
-  color:var(--ink);cursor:pointer;margin-left:6px;font-family:'Pretendard';}
+.pager-row{display:flex;align-items:center;justify-content:space-between;margin-top:12px;}
+.day-edit{border:none;background:#fff;border-radius:10px;padding:8px 13px;font-size:12px;font-weight:700;
+  color:var(--ink);cursor:pointer;font-family:'Pretendard';box-shadow:0 2px 8px rgba(43,36,64,.07);}
 .sess-name{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-weight:600;font-size:13px;}
 .sess-dur{min-width:48px;text-align:right;}
 .day-done{margin-top:14px;border-top:1.5px solid var(--line);padding-top:12px;}

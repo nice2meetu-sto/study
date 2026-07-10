@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=7';
+import { sb, fetchAll } from './api.js?v=8';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -685,6 +685,7 @@ function renderMonth(){
   $('#mo-lbl').textContent = `${y}년 ${mo+1}월`;
   $('#mo-prev').disabled = UI.moOffset <= minMonthOffset();
   $('#mo-next').disabled = isCurMonth;
+  $('#day-edit-btn').style.display = UI.selDay === null ? 'none' : '';
 
   const per = minutesPerDay();
   const days = new Date(y, mo+1, 0).getDate();
@@ -745,8 +746,7 @@ function renderDayCard(y, mo){
   let total = 0; map.forEach(v => total += v);
   const doneAsg = S.assignments.filter(a => a.date === ds && a.done);
   box.innerHTML = `<div class="day-title"><span class="tt">과목별 시간</span>
-      <span class="tot">${mo+1}월 ${UI.selDay}일 · 총 ${fmtMin(total)}
-        <button class="day-edit" onclick="openSessSheet()">수정</button></span></div>`
+      <span class="tot">${mo+1}월 ${UI.selDay}일 · 총 ${fmtMin(total)}</span></div>`
     + barRows(map, fmtHM)
     + (doneAsg.length ? `<div class="day-done"><p class="dd-t">이날 한 일</p>
         ${doneAsg.map(a => { const t = todoById(a.todo_id); return t
@@ -1003,6 +1003,7 @@ function renderSet(){
     <div class="cat-group" data-cat="${cat.id}">
       <div class="swipe-wrap"><div class="swipe-del-bg">🗑</div>
         <div class="set-line cat-line" data-cat-id="${cat.id}">
+          <span class="drag-h" onpointerdown="startCatDrag(event,'${cat.id}')" aria-hidden="true">⠿</span>
           <span class="td-txt" contenteditable="true"
             onblur="catEdit(this,'${cat.id}')"
             onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}">${esc(cat.name)}</span>
@@ -1133,6 +1134,49 @@ function dropSubj(e){
   $$('.cat-group').forEach(g => g.classList.remove('hover'));
   if(sDrag){ sDrag.remove(); sDrag = null; }
   sFromId = null;
+  renderSet();
+}
+
+// 대분류 순서 변경: 핸들 드래그 → 놓은 대분류 위치로 이동 (과목도 함께)
+let cDrag = null, cFromId = null;
+function startCatDrag(e, id){
+  e.stopPropagation(); e.preventDefault();
+  cFromId = id;
+  const line = e.target.closest('.set-line');
+  cDrag = line.cloneNode(true); cDrag.classList.add('ghost-drag');
+  cDrag.style.width = line.offsetWidth+'px'; cDrag.style.background = '#fff';
+  cDrag.style.borderRadius = '10px'; cDrag.style.padding = '6px 10px';
+  document.body.appendChild(cDrag); moveCat(e);
+  e.target.setPointerCapture(e.pointerId);
+  e.target.addEventListener('pointermove', moveCat);
+  e.target.addEventListener('pointerup', dropCat, {once:true});
+}
+function moveCat(e){
+  if(cDrag){ cDrag.style.left = e.clientX+'px'; cDrag.style.top = e.clientY+'px'; }
+  $$('.cat-group').forEach(g => g.classList.remove('hover'));
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const grp = el && el.closest('.cat-group[data-cat]');
+  if(grp && grp.dataset.cat !== cFromId) grp.classList.add('hover');
+}
+function dropCat(e){
+  const el = document.elementFromPoint(e.clientX, e.clientY);
+  const grp = el && el.closest('.cat-group[data-cat]');
+  if(grp && cFromId && grp.dataset.cat !== cFromId){
+    const cats = S.cats.slice().sort(bySort);
+    const from = cats.findIndex(c => c.id === cFromId);
+    const to = cats.findIndex(c => c.id === grp.dataset.cat);
+    if(from >= 0 && to >= 0){
+      const [moved] = cats.splice(from, 1);
+      cats.splice(to, 0, moved);
+      cats.forEach((c, i) => {
+        if(c.sort_order !== i){ c.sort_order = i; upd('categories', c.id, {sort_order:i}); }
+      });
+      renderAll();
+    }
+  }
+  $$('.cat-group').forEach(g => g.classList.remove('hover'));
+  if(cDrag){ cDrag.remove(); cDrag = null; }
+  cFromId = null;
   renderSet();
 }
 
@@ -1281,6 +1325,7 @@ $('#memo').addEventListener('blur', () => {
 $('#memo').addEventListener('keydown', e => { if(e.key === 'Escape') e.target.blur(); });
 $('#btn-dday-close').addEventListener('click', closeDdaySheet);
 $('#ovl-dday').addEventListener('click', e => { if(e.target === $('#ovl-dday')) closeDdaySheet(); });
+$('#day-edit-btn').addEventListener('click', openSessSheet);
 $('#btn-sess-close').addEventListener('click', () => $('#ovl-sess').classList.remove('show'));
 $('#ovl-sess').addEventListener('click', e => { if(e.target === $('#ovl-sess')) $('#ovl-sess').classList.remove('show'); });
 $('#wk-prev').addEventListener('click', () => { if(UI.wkOffset > MIN_WK){ UI.wkOffset--; renderWeek(); } });
@@ -1315,7 +1360,7 @@ $('#login-form').addEventListener('submit', async e => {
 Object.assign(window, {
   toggleAsg, removeAsg, pickDay, setFilter, toggleCard, tdChk, tdEdit, tdGhost,
   toggleLec, toggleLecCard, lecTgl, catEdit, catGhost, subjEdit, subjGhost, cycleStatus,
-  togglePick, pickColor, startSubjDrag, lecEdit, lecTotal, addLecSet,
+  togglePick, pickColor, startSubjDrag, startCatDrag, lecEdit, lecTotal, addLecSet,
   ddayEdit, ddayDate, ddayGhost, openSessSheet, sessTime,
 });
 
