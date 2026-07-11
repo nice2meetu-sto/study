@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=33';
+import { sb, fetchAll } from './api.js?v=34';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -720,12 +720,14 @@ function setFace(focus){
 function initStarRain(){
   // 시작점: 상단 여러 곳 + 좌측 가장자리 중앙~아래 (화면 아래쪽도 지나가도록)
   const conf = [
-    { left:'4%',   top:'-14vh', size:26, delay:0,     op:.5  },
-    { left:'30%',  top:'-14vh', size:18, delay:-7,    op:.4  },
-    { left:'56%',  top:'-14vh', size:28, delay:-13,   op:.55 },
-    { left:'-9%',  top:'20%',   size:22, delay:-3.5,  op:.45 },
-    { left:'-10%', top:'44%',   size:20, delay:-10,   op:.4  },
-    { left:'-8%',  top:'66%',   size:24, delay:-16.5, op:.5  },
+    { left:'4%',   top:'-16vh', size:44, delay:0,     op:.5  },
+    { left:'28%',  top:'-16vh', size:32, delay:-7,    op:.4  },
+    { left:'54%',  top:'-16vh', size:50, delay:-13,   op:.55 },
+    { left:'74%',  top:'-16vh', size:34, delay:-17.5, op:.4  },
+    { left:'-11%', top:'18%',   size:38, delay:-3.5,  op:.45 },
+    { left:'-12%', top:'40%',   size:30, delay:-10,   op:.4  },
+    { left:'-10%', top:'58%',   size:46, delay:-15,   op:.5  },
+    { left:'-11%', top:'72%',   size:36, delay:-5.5,  op:.45 },
   ];
   $('#star-rain').innerHTML = conf.map(c =>
     `<span class="sr" style="left:${c.left};top:${c.top};width:${c.size}px;opacity:${c.op};animation-delay:${c.delay}s">${starSVG('#FFD983','happy')}</span>`).join('');
