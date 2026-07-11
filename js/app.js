@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=30';
+import { sb, fetchAll } from './api.js?v=31';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -200,7 +200,7 @@ function recentSubject(){
 function renderHome(){
   const now = new Date();
   $('#home-date').textContent = `${now.getMonth()+1}월 ${now.getDate()}일 ${DOW[dowIdx(now)]}요일`;
-  const name = S.user?.user_metadata?.name;
+  const name = S.user?.user_metadata?.name || S.user?.user_metadata?.display_name;
   $('#home-greet').innerHTML = name
     ? `${esc(name)}님, 오늘도<br>별이랑 시작해요 💫`
     : `오늘도 별이랑<br>시작해요 💫`;
