@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=32';
+import { sb, fetchAll } from './api.js?v=33';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -718,16 +718,17 @@ function setFace(focus){
 }
 // 별똥별 배경: 6개 별이가 45도 사선으로 10초에 걸쳐 지나간다 (타이머 작동 중에만)
 function initStarRain(){
+  // 시작점: 상단 여러 곳 + 좌측 가장자리 중앙~아래 (화면 아래쪽도 지나가도록)
   const conf = [
-    { left:'4%',   size:26, delay:0,    op:.5  },
-    { left:'26%',  size:18, delay:-3.4, op:.4  },
-    { left:'48%',  size:30, delay:-6.6, op:.55 },
-    { left:'-14%', size:22, delay:-5.0, op:.45 },
-    { left:'66%',  size:20, delay:-1.7, op:.4  },
-    { left:'-32%', size:24, delay:-8.3, op:.5  },
+    { left:'4%',   top:'-14vh', size:26, delay:0,     op:.5  },
+    { left:'30%',  top:'-14vh', size:18, delay:-7,    op:.4  },
+    { left:'56%',  top:'-14vh', size:28, delay:-13,   op:.55 },
+    { left:'-9%',  top:'20%',   size:22, delay:-3.5,  op:.45 },
+    { left:'-10%', top:'44%',   size:20, delay:-10,   op:.4  },
+    { left:'-8%',  top:'66%',   size:24, delay:-16.5, op:.5  },
   ];
   $('#star-rain').innerHTML = conf.map(c =>
-    `<span class="sr" style="left:${c.left};width:${c.size}px;opacity:${c.op};animation-delay:${c.delay}s">${starSVG('#FFD983','basic')}</span>`).join('');
+    `<span class="sr" style="left:${c.left};top:${c.top};width:${c.size}px;opacity:${c.op};animation-delay:${c.delay}s">${starSVG('#FFD983','happy')}</span>`).join('');
 }
 function renderTimer(){
   tick();

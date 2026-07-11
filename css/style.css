@@ -18,7 +18,7 @@ body{font-family:'Pretendard',sans-serif;color:var(--ink);min-height:100dvh;}
 #star-rain{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;
   opacity:0;transition:opacity .8s ease;}
 #star-rain.on{opacity:1;}
-#star-rain .sr{position:absolute;top:-14vh;animation:starfall 10s linear infinite;}
+#star-rain .sr{position:absolute;animation:starfall 20s linear infinite;}
 #star-rain:not(.on) .sr{animation-play-state:paused;} /* 꺼져 있으면 GPU 작업 0 */
 #star-rain .sr svg{width:100%;height:auto;display:block;}
 @keyframes starfall{
