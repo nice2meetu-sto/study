@@ -111,12 +111,19 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .chk.on{background:var(--ink);border-color:var(--ink);color:#fff;}
 .chk:disabled{cursor:default;}
 .done-txt{text-decoration:line-through;color:var(--sub);}
-.subj-group{margin-top:10px;}
+.subj-group{margin-top:10px; padding-left: 5px; margin-bottom: 4px;}
 .todo-empty{padding:14px 0 8px;font-size:13px;color:#C4BEB1;font-weight:500;}
 #home-todos .todo-line{
   font-weight:500;
   padding-left: 10px;
+  margin-top: 0px;
+  margin-bottom: 4px;
 }
+
+#home-todos .todo-line:last-child {
+  margin-bottom: 0px,
+}
+
 .subj-group .g-lbl{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--sub);}
 .subj-group .g-lbl i{width:8px;height:8px;border-radius:50%;}
 .go-timer{grid-column:1/-1;display:flex;align-items:center;justify-content:space-between;
