@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=20';
+import { sb, fetchAll } from './api.js?v=21';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -338,6 +338,7 @@ function renderWeek(){
   $('#wk-lbl').textContent = weekLabel(mon);
   $('#wk-prev').disabled = UI.wkOffset <= MIN_WK;
   $('#wk-next').disabled = UI.wkOffset >= MAX_WK;
+  $('#wk-today').style.display = isCur ? 'none' : '';
   $('#pool-card').style.display = editable ? 'block' : 'none';
   $('#week-graph').style.display = editable ? 'none' : 'block';
 
@@ -391,12 +392,17 @@ function renderWeekGraph(mon){
   const per = minutesPerDay();
   const vals = Array.from({length:7}, (_,i) => per.get(ymd(addDays(mon, i))) || 0);
   const total = vals.reduce((a,b) => a+b, 0);
-  const days = vals.filter(v => v > 0).length;
-  $('#wg-avg').textContent = `일 평균 ${fmtHM(days ? total/days : 0)}`;
+  $('#wg-avg').textContent = `일 평균 ${fmtHM(total/7)}`; // 공부 안 한 날 포함 ÷7
+  // 추이선 = 그날 완료한 할일 수 (막대는 공부시간)
+  const dones = Array.from({length:7}, (_,i) => {
+    const ds = ymd(addDays(mon, i));
+    return S.assignments.filter(a => a.date === ds && a.done).length;
+  });
   const W = 336, H = 150, base = 118, top = 14;
   const max = Math.max(...vals, 60);
+  const dmax = Math.max(...dones, 1);
   const step = W/7, bw = 26;
-  const pts = vals.map((v,i) => ({ x: step*i + step/2, y: base - (v/max)*(base-top) }));
+  const pts = dones.map((c,i) => ({ x: step*i + step/2, y: base - (c/dmax)*(base-top) }));
   const bars = vals.map((v,i) => {
     if(v <= 0) return '';
     const h = Math.max((v/max)*(base-top), 4);
@@ -727,12 +733,7 @@ function monthOf(offset){
   const now = new Date();
   return new Date(now.getFullYear(), now.getMonth()+offset, 1);
 }
-function minMonthOffset(){
-  if(!S.sessions.length) return 0;
-  const f = new Date(S.sessions[0].started_at);
-  const now = new Date();
-  return (f.getFullYear() - now.getFullYear())*12 + (f.getMonth() - now.getMonth());
-}
+const MIN_MO = -120; // 과거 10년까지 이동 가능 (기록 없는 달 포함)
 // 표정: basic(입만 웃음) / happy(눈도 웃음) / best(>_<)
 function starSVG(fill, face){
   const eyes = face === 'best'
@@ -749,9 +750,10 @@ function renderMonth(){
   const y = base.getFullYear(), mo = base.getMonth();
   const isCurMonth = UI.moOffset === 0;
   $('#mo-lbl').textContent = `${y}년 ${mo+1}월`;
-  $('#mo-prev').disabled = UI.moOffset <= minMonthOffset();
+  $('#mo-prev').disabled = UI.moOffset <= MIN_MO;
   $('#mo-next').disabled = isCurMonth;
   $('#day-edit-btn').style.display = UI.selDay === null ? 'none' : '';
+  $('#mo-today').style.display = (UI.selDay === null && !isCurMonth) ? '' : 'none';
 
   const per = minutesPerDay();
   const days = new Date(y, mo+1, 0).getDate();
@@ -767,7 +769,7 @@ function renderMonth(){
   const asgMonth = S.assignments.filter(a => inMonth(a.date) && a.date <= todayStr());
   const rate = asgMonth.length ? Math.round(asgMonth.filter(a => a.done).length / asgMonth.length * 100) + '%' : '—';
   const timeVal = UI.statAvg ? (studyDays ? totalMin/studyDays : 0) : totalMin;
-  const timeLbl = UI.statAvg ? '일평균 공부시간' : '총 공부시간';
+  const timeLbl = UI.statAvg ? '평균 공부시간' : '총 공부시간';
   $('#mo-stats').innerHTML = `
     <div class="card stat-time" onclick="toggleStatAvg()" role="button" aria-label="총 공부시간·일평균 전환">
       <div class="num">${fmtHM(timeVal)}</div><div class="lbl">${timeLbl}</div>
@@ -784,7 +786,10 @@ function renderMonth(){
     const dt = new Date(y,mo,d), ds = ymd(dt);
     if(dt > today && ds !== todayStr()){ html += `<div class="day num">${d}</div>`; continue; }
     const min = per.get(ds) || 0, v = level(min);
-    if(v === 0){ html += '<div class="day"></div>'; continue; }
+    if(v === 0){
+      html += `<div class="day clickable ${UI.selDay===d?'sel':''}" onclick="pickDay(${d})" role="button" aria-label="${mo+1}월 ${d}일"></div>`;
+      continue;
+    }
     const face = v <= 2 ? 'basic' : v >= 5 ? 'best' : 'happy'; // ~4h 기본, ~8h 눈웃음, 초과 >_<
     html += `<div class="day clickable ${UI.selDay===d?'sel':''}" style="background:${LV[Math.max(1,v-1)]}55"
       onclick="pickDay(${d})" role="button" aria-label="${mo+1}월 ${d}일 기록">${starSVG(LV[v], face)}</div>`;
@@ -852,6 +857,22 @@ function renderSessSheet(){
         <span class="meta sess-dur">${fmtMin(s.duration_sec/60)}</span>
       </div></div>`).join('')}
   </div>` : '<div class="cat-group"><p class="todo-empty" style="padding:6px 4px">기록이 없어요</p></div>';
+  // 기록 직접 추가 폼
+  const catOrder = new Map(S.cats.slice().sort(bySort).map((c, i) => [c.id, i]));
+  const subjOpts = S.subjects.slice()
+    .sort((a, b) => ((catOrder.get(a.category_id) ?? 999) - (catOrder.get(b.category_id) ?? 999)) || bySort(a, b))
+    .map(x => `<option value="${x.id}">${esc(x.name)}</option>`).join('');
+  $('#sess-list').insertAdjacentHTML('beforeend', `
+    <div class="set-sec">
+      <p class="t">기록 추가</p>
+      <div class="set-row"><select id="sess-subj" aria-label="과목">${subjOpts}</select></div>
+      <div class="set-row" style="align-items:center">
+        <input type="time" id="sess-start" class="date-input" style="flex:1" value="09:00" aria-label="시작 시각">
+        <span class="meta">~</span>
+        <input type="time" id="sess-end" class="date-input" style="flex:1" value="10:00" aria-label="종료 시각">
+        <button class="set-add" onclick="addSessManual()">추가</button>
+      </div>
+    </div>`);
   $$('#sess-list .swipe-wrap').forEach(w => bindSwipe(w, line => {
     const id = line.dataset.sessId;
     S.sessions = S.sessions.filter(s => s.id !== id);
@@ -872,6 +893,26 @@ function sessTime(el, id, which){
   s.ended_at = end.toISOString();
   s.duration_sec = Math.round((end - start) / 1000);
   upd('sessions', id, {started_at:s.started_at, ended_at:s.ended_at, duration_sec:s.duration_sec});
+  renderSessSheet(); renderAll();
+}
+function addSessManual(){
+  const sid = $('#sess-subj')?.value;
+  const st = $('#sess-start')?.value, en = $('#sess-end')?.value;
+  if(!sid || !st || !en) return;
+  const [y, m, dd] = UI.sessDate.split('-').map(Number);
+  const [sh, sm] = st.split(':').map(Number);
+  const [eh, em] = en.split(':').map(Number);
+  const start = new Date(y, m-1, dd, sh, sm, 0);
+  let end = new Date(y, m-1, dd, eh, em, 0);
+  if(end <= start) end = new Date(end.getTime() + 86400000);
+  const row = {
+    id: uid(), user_id: S.user.id, subject_id: sid,
+    started_at: start.toISOString(), ended_at: end.toISOString(),
+    duration_sec: Math.round((end - start) / 1000),
+  };
+  S.sessions.push({...row, created_at: new Date().toISOString()});
+  S.sessions.sort((a, b) => a.started_at.localeCompare(b.started_at));
+  ins('sessions', row);
   renderSessSheet(); renderAll();
 }
 
@@ -898,7 +939,7 @@ function ghostLineHtml(sid, parentId){
     <span class="g-input" contenteditable="true" data-ph="${sub?'작은 할일 추가':'할일 추가'}"
       onclick="event.stopPropagation()"
       onblur="tdGhost(this,'${sid}',${sub?`'${parentId}'`:'null'})"
-      onkeydown="if(event.key==='Enter'){event.preventDefault();this.blur();}"></span>
+      onkeydown="if(event.key==='Enter'){event.preventDefault();this.dataset.enter='1';this.blur();}"></span>
   </div>`;
 }
 function lecStats(L){
@@ -1008,6 +1049,8 @@ function tdEdit(el, id){
 }
 function tdGhost(el, sid, parentId){
   const v = el.textContent.trim();
+  const viaEnter = el.dataset.enter === '1';
+  delete el.dataset.enter;
   if(!v){ el.textContent = ''; return; }
   const siblings = S.todos.filter(t => t.subject_id === sid && (parentId ? t.parent_id === parentId : !t.parent_id));
   const row = { id:uid(), user_id:S.user.id, subject_id:sid, parent_id:parentId, text:v, done:false,
@@ -1015,6 +1058,15 @@ function tdGhost(el, sid, parentId){
   S.todos.push({...row, created_at:new Date().toISOString()});
   ins('todos', row);
   renderAll();
+  // Enter로 작은 할일을 추가했다면 새 입력칸에 바로 포커스 (연속 입력)
+  if(viaEnter && parentId){
+    const line = $(`#subj-list .todo-line[data-id="${parentId}"]`);
+    const group = line && line.closest('.todo-group');
+    if(group){
+      group.classList.add('show');
+      group.querySelector('.g-input')?.focus();
+    }
+  }
 }
 function toggleLec(e, id){
   e.stopPropagation();
@@ -1420,11 +1472,13 @@ $('#memo').addEventListener('keydown', e => { if(e.key === 'Escape') e.target.bl
 $('#btn-dday-close').addEventListener('click', closeDdaySheet);
 $('#ovl-dday').addEventListener('click', e => { if(e.target === $('#ovl-dday')) closeDdaySheet(); });
 $('#day-edit-btn').addEventListener('click', openSessSheet);
+$('#mo-today').addEventListener('click', () => { UI.moOffset = 0; UI.selDay = null; renderMonth(); });
+$('#wk-today').addEventListener('click', () => { UI.wkOffset = 0; UI.weekScrolled = false; renderWeek(); });
 $('#btn-sess-close').addEventListener('click', () => $('#ovl-sess').classList.remove('show'));
 $('#ovl-sess').addEventListener('click', e => { if(e.target === $('#ovl-sess')) $('#ovl-sess').classList.remove('show'); });
 $('#wk-prev').addEventListener('click', () => { if(UI.wkOffset > MIN_WK){ UI.wkOffset--; renderWeek(); } });
 $('#wk-next').addEventListener('click', () => { if(UI.wkOffset < MAX_WK){ UI.wkOffset++; renderWeek(); } });
-$('#mo-prev').addEventListener('click', () => { if(UI.moOffset > minMonthOffset()){ UI.moOffset--; UI.selDay = null; renderMonth(); } });
+$('#mo-prev').addEventListener('click', () => { if(UI.moOffset > MIN_MO){ UI.moOffset--; UI.selDay = null; renderMonth(); } });
 $('#mo-next').addEventListener('click', () => { if(UI.moOffset < 0){ UI.moOffset++; UI.selDay = null; renderMonth(); } });
 $('#btn-start').addEventListener('click', onStartPause);
 $('#btn-end').addEventListener('click', onEnd);
@@ -1455,7 +1509,7 @@ Object.assign(window, {
   toggleAsg, removeAsg, pickDay, setFilter, toggleCard, tdChk, tdEdit, tdGhost,
   toggleLec, toggleLecCard, lecTgl, catEdit, catGhost, subjEdit, subjGhost, cycleStatus,
   togglePick, pickColor, startSubjDrag, startCatDrag, lecEdit, lecTotal, addLecSet,
-  ddayEdit, ddayDate, ddayGhost, openSessSheet, sessTime, toggleStatAvg,
+  ddayEdit, ddayDate, ddayGhost, openSessSheet, sessTime, addSessManual, toggleStatAvg,
 });
 
 /* 작은 할일 입력칸: 해당 할일 그룹에 포커스가 있을 때만 표시 */
