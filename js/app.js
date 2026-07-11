@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=19';
+import { sb, fetchAll } from './api.js?v=20';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -339,6 +339,7 @@ function renderWeek(){
   $('#wk-prev').disabled = UI.wkOffset <= MIN_WK;
   $('#wk-next').disabled = UI.wkOffset >= MAX_WK;
   $('#pool-card').style.display = editable ? 'block' : 'none';
+  $('#week-graph').style.display = editable ? 'none' : 'block';
 
   const today = todayStr();
   const per = new Map();
@@ -383,7 +384,37 @@ function renderWeek(){
     row.scrollLeft = prevScroll;
   }
 
-  if(editable) renderPool();
+  if(editable) renderPool(); else renderWeekGraph(mon);
+}
+// 과거 주: 요일별 공부시간 막대 + 추이선 그래프
+function renderWeekGraph(mon){
+  const per = minutesPerDay();
+  const vals = Array.from({length:7}, (_,i) => per.get(ymd(addDays(mon, i))) || 0);
+  const total = vals.reduce((a,b) => a+b, 0);
+  const days = vals.filter(v => v > 0).length;
+  $('#wg-avg').textContent = `일 평균 ${fmtHM(days ? total/days : 0)}`;
+  const W = 336, H = 150, base = 118, top = 14;
+  const max = Math.max(...vals, 60);
+  const step = W/7, bw = 26;
+  const pts = vals.map((v,i) => ({ x: step*i + step/2, y: base - (v/max)*(base-top) }));
+  const bars = vals.map((v,i) => {
+    if(v <= 0) return '';
+    const h = Math.max((v/max)*(base-top), 4);
+    return `<rect x="${(step*i + step/2 - bw/2).toFixed(1)}" y="${(base-h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="6" fill="var(--mint)"/>`;
+  }).join('');
+  let line = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
+  for(let i = 0; i < 6; i++){
+    const mx = ((pts[i].x + pts[i+1].x)/2).toFixed(1);
+    line += ` C ${mx} ${pts[i].y.toFixed(1)}, ${mx} ${pts[i+1].y.toFixed(1)}, ${pts[i+1].x.toFixed(1)} ${pts[i+1].y.toFixed(1)}`;
+  }
+  const labels = DOW.map((d,i) =>
+    `<text x="${(step*i + step/2).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="10.5" font-weight="600" fill="#8C86A3" font-family="Pretendard,sans-serif">${d}</text>`).join('');
+  $('#wg-chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" aria-label="요일별 공부시간 그래프">
+    <line x1="6" x2="${W-6}" y1="${base+0.5}" y2="${base+0.5}" stroke="#EFE9DE" stroke-width="1.5"/>
+    ${bars}
+    <path d="${line}" fill="none" stroke="#F08A3C" stroke-width="2.5" stroke-linecap="round"/>
+    ${labels}
+  </svg>`;
 }
 function scrollWeekTo(i, smooth){
   const row = $('#week-row');
