@@ -46,9 +46,13 @@ create table if not exists assignments (
   todo_id    uuid not null references todos(id) on delete cascade,
   date       date not null,
   done       boolean not null default false,
+  sort_order int  not null default 0,
   created_at timestamptz not null default now(),
   unique (todo_id, date)
 );
+
+-- 기존 설치에 컬럼 추가 (여러 번 실행해도 안전)
+alter table assignments add column if not exists sort_order int not null default 0;
 
 -- 타이머 세션 (과목 삭제 시에도 기록은 남김)
 create table if not exists sessions (

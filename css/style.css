@@ -127,6 +127,7 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
   line-height:1.35;cursor:pointer;touch-action:pan-y;user-select:none;color:var(--ink);font-weight:600;}
 .w-todo.done{opacity:.5;}
 .day-col.past .w-todo{cursor:default;}
+.w-todo.drag-src{opacity:.35;}
 .pool-card{margin-top:14px;border:1.5px solid transparent;}
 .wg-avg{font-family:'Pretendard';font-size:11.5px;font-weight:600;color:var(--sub);margin-left:6px;}
 .pool-card.hover{border-color:var(--ink);}

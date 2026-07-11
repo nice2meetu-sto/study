@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=25';
+import { sb, fetchAll } from './api.js?v=26';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -351,7 +351,7 @@ function renderWeek(){
   row.innerHTML = Array.from({length:7}, (_,i) => {
     const d = addDays(mon, i), ds = ymd(d);
     const isToday = ds === today;
-    const list = (per.get(ds) || []).slice().sort(byCreated);
+    const list = (per.get(ds) || []).slice().sort(bySort);
     const allDone = list.length > 0 && list.every(a => a.done);
     return `<div class="day-col ${isToday?'today':''} ${editable?'':'past'}" data-date="${ds}">
       <div class="day-head"><span class="dow">${DOW[i]}</span><span class="date">${d.getMonth()+1}.${d.getDate()}${isToday?' · 오늘':''}</span>${allDone?'<span class="day-thumb">👍</span>':''}</div>
@@ -478,57 +478,95 @@ function edgeScrollWeek(ev){
   else if(ev.clientX < r.left + 48) row.scrollLeft -= 14;
 }
 // 배정 카드: 탭 = 완료 토글, 수평 드래그 = 다른 요일로 이동
+// 배정 카드: 탭 = 완료 토글 / 수평 드래그 또는 꾹(0.3초) 눌러 들기 = 요일 이동·순서 변경·담기로 해제
+// 드는 동안 실제 목록이 밀리면서 들어갈 자리가 보인다
+let wDragging = false;
+window.addEventListener('touchmove', e => { if(wDragging) e.preventDefault(); }, {passive:false});
 function bindWTodo(el){
   el.addEventListener('pointerdown', e => {
     const asgId = el.dataset.asg;
     const sx = e.clientX, sy = e.clientY;
-    let dragging = false, ghost = null, canceled = false;
-    el.setPointerCapture(e.pointerId);
+    const isTouch = e.pointerType === 'touch';
+    let dragging = false, ghost = null, lastX = sx, lastY = sy;
+    const lift = () => {
+      if(dragging) return;
+      dragging = true; wDragging = true;
+      ghost = el.cloneNode(true); ghost.classList.add('ghost-drag');
+      ghost.style.width = el.offsetWidth+'px';
+      document.body.appendChild(ghost);
+      el.classList.add('drag-src');
+      track(lastX, lastY);
+    };
+    const timer = setTimeout(lift, 300); // 꾹 누르면 들기 (순서 변경용)
+    const track = (x, y) => {
+      ghost.style.left = x+'px'; ghost.style.top = y+'px';
+      edgeScrollWeek({clientX: x});
+      const under = document.elementFromPoint(x, y);
+      const overPool = !!under?.closest('#pool-card');
+      $('#pool-card').classList.toggle('hover', overPool);
+      $$('.day-col').forEach(c => c.classList.remove('hover'));
+      if(overPool) return;
+      const overCol = under?.closest('.day-col:not(.past)');
+      if(!overCol) return;
+      overCol.classList.add('hover');
+      const overTodo = under?.closest('.w-todo');
+      if(overTodo && overTodo !== el){
+        const r = overTodo.getBoundingClientRect();
+        if(y < r.top + r.height/2) overTodo.parentNode.insertBefore(el, overTodo);
+        else overTodo.parentNode.insertBefore(el, overTodo.nextSibling);
+      }else if(!overCol.contains(el)){
+        overCol.appendChild(el);
+      }
+    };
     const mv = ev => {
-      const dx = ev.clientX - sx, dy = ev.clientY - sy;
-      if(!dragging && Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)*1.2){
-        dragging = true;
-        ghost = el.cloneNode(true); ghost.classList.add('ghost-drag');
-        ghost.style.width = el.offsetWidth+'px';
-        document.body.appendChild(ghost);
+      lastX = ev.clientX; lastY = ev.clientY;
+      const dx = lastX - sx, dy = lastY - sy;
+      if(!dragging){
+        const horiz = Math.abs(dx) > 12 && Math.abs(dx) > Math.abs(dy)*1.2;
+        if(horiz || (!isTouch && Math.hypot(dx, dy) > 12)) lift();
+        else if(isTouch && Math.hypot(dx, dy) > 10) clearTimeout(timer); // 세로 스크롤 의도
       }
-      if(dragging){
-        ev.preventDefault();
-        ghost.style.left = ev.clientX+'px'; ghost.style.top = ev.clientY+'px';
-        edgeScrollWeek(ev);
-        $$('.day-col').forEach(c => c.classList.remove('hover'));
-        const under = document.elementFromPoint(ev.clientX, ev.clientY);
-        const t = under?.closest('.day-col:not(.past)');
-        if(t) t.classList.add('hover');
-        // 담기 카드 위 = 배정 해제 표시
-        $('#pool-card').classList.toggle('hover', !!under?.closest('#pool-card'));
-      }
+      if(dragging){ ev.preventDefault(); track(lastX, lastY); }
     };
     const cleanup = () => {
-      el.removeEventListener('pointermove', mv);
-      el.removeEventListener('pointerup', up);
-      el.removeEventListener('pointercancel', cancel);
+      clearTimeout(timer);
+      window.removeEventListener('pointermove', mv);
+      window.removeEventListener('pointerup', up);
+      window.removeEventListener('pointercancel', cancel);
       $$('.day-col').forEach(c => c.classList.remove('hover'));
       $('#pool-card').classList.remove('hover');
+      el.classList.remove('drag-src');
       if(ghost) ghost.remove();
+      wDragging = false;
     };
-    const cancel = () => { canceled = true; cleanup(); };
-    const up = ev => {
+    const cancel = () => {
+      const wasDragging = dragging;
       cleanup();
-      if(canceled) return;
-      if(!dragging){ toggleAsg(asgId); return; }
+      if(wasDragging) renderWeek(); // 원위치 복원
+    };
+    const up = ev => {
+      const wasDragging = dragging;
+      cleanup();
+      if(!wasDragging){ toggleAsg(asgId); return; }
       const under = document.elementFromPoint(ev.clientX, ev.clientY);
       if(under?.closest('#pool-card')){ removeAsg(asgId); return; } // 담기로 돌려놓기 = 배정 해제
-      const t = under?.closest('.day-col:not(.past)');
-      if(t){
-        const date = t.dataset.date;
-        const a = S.assignments.find(x => x.id === asgId);
-        if(a && a.date !== date){ a.date = date; upd('assignments', asgId, {date}); renderAll(); }
-      }
+      // 화면에 보이는 순서 그대로 날짜·순번 저장
+      $$('#week-row .day-col').forEach(col => {
+        const date = col.dataset.date;
+        [...col.querySelectorAll('.w-todo')].forEach((w, i) => {
+          const a = S.assignments.find(x => x.id === w.dataset.asg);
+          if(!a) return;
+          const patch = {};
+          if(a.date !== date){ a.date = date; patch.date = date; }
+          if(a.sort_order !== i){ a.sort_order = i; patch.sort_order = i; }
+          if(Object.keys(patch).length) upd('assignments', a.id, patch);
+        });
+      });
+      renderAll();
     };
-    el.addEventListener('pointermove', mv);
-    el.addEventListener('pointerup', up);
-    el.addEventListener('pointercancel', cancel);
+    window.addEventListener('pointermove', mv);
+    window.addEventListener('pointerup', up);
+    window.addEventListener('pointercancel', cancel);
   });
 }
 
@@ -611,9 +649,15 @@ function bindPoolDrag(){
         if(!col) return;
         const date = col.dataset.date;
         if(existing){
-          if(existing.date !== date){ existing.date = date; upd('assignments', existing.id, {date}); renderAll(); }
+          if(existing.date !== date){
+            existing.date = date;
+            existing.sort_order = S.assignments.filter(a => a.date === date && a !== existing).length;
+            upd('assignments', existing.id, {date, sort_order: existing.sort_order});
+            renderAll();
+          }
         }else{
-          const row = { id:uid(), user_id:S.user.id, todo_id:todoId, date, done:false };
+          const row = { id:uid(), user_id:S.user.id, todo_id:todoId, date, done:false,
+            sort_order: S.assignments.filter(a => a.date === date).length };
           S.assignments.push({...row, created_at:new Date().toISOString()});
           ins('assignments', row);
           renderAll();
