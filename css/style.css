@@ -26,6 +26,13 @@ body{font-family:'Pretendard',sans-serif;color:var(--ink);min-height:100dvh;}
 /* ═══ 앱 레이아웃 ═══ */
 #app{max-width:430px;margin:0 auto;min-height:100dvh;position:relative;}
 .screen{display:none;padding:24px 20px calc(126px + env(safe-area-inset-bottom));min-height:100dvh;}
+/* 넓은 화면(태블릿): 플랜만 넓게 — 요일 칸이 여러 개 보이도록. 폰에는 영향 없음 */
+@media (min-width:700px){
+  #app{max-width:none;}
+  .screen{max-width:430px;margin:0 auto;}
+  #scr-week{max-width:960px;}
+  #wg-chart{max-width:520px;margin:0 auto;}
+}
 .screen.active{display:block;animation:fade .22s ease;}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
 @media (prefers-reduced-motion:reduce){.screen.active{animation:none}.sheet{animation:none!important}}
