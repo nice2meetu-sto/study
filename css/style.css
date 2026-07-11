@@ -113,15 +113,12 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .done-txt{text-decoration:line-through;color:var(--sub);}
 .subj-group{margin-top:10px; padding-left: 5px; margin-bottom: 4px;}
 .todo-empty{padding:14px 0 8px;font-size:13px;color:#C4BEB1;font-weight:500;}
+/* 과목 라벨↔첫 할일, 할일↔할일 간격을 margin-top 하나로 통일 */
 #home-todos .todo-line{
   font-weight:500;
-  padding-left: 10px;
-  margin-top: 0px;
-  margin-bottom: 4px;
-}
-
-#home-todos .todo-line:last-child {
-  margin-bottom: 0px,
+  padding: 0 0 0 10px;
+  margin-top: 7px;
+  margin-bottom: 0;
 }
 
 .subj-group .g-lbl{display:flex;align-items:center;gap:6px;font-size:11px;font-weight:700;color:var(--sub);}
