@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=24';
+import { sb, fetchAll } from './api.js?v=25';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -563,8 +563,9 @@ function renderPool(){
     const asg = weekAssignmentOf(t.id);
     const monMid = parseYmd(ymd(mondayOf(new Date(), UI.wkOffset)));
     const dayLbl = asg ? DOW[Math.round((parseYmd(asg.date) - monMid) / 86400000)] : '';
+    // 배정 전: 컬러칩 + 이름 / 배정 후: 이름 + 요일 뱃지
     return `<span class="pool-item ${asg?'assigned':''}" data-todo="${t.id}">
-      <span class="tag" style="background:${subjColor(UI.poolSubj)}"></span>${esc(t.text)}${asg?`<b class="pi-day">${dayLbl}</b>`:''}</span>`;
+      ${asg?'':`<span class="tag" style="background:${subjColor(UI.poolSubj)}"></span>`}${esc(t.text)}${asg?`<b class="pi-day">${dayLbl}</b>`:''}</span>`;
   }).join('') : '';
   bindPoolDrag();
 }
