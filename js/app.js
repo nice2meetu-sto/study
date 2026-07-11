@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=23';
+import { sb, fetchAll } from './api.js?v=24';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -39,7 +39,7 @@ function level(min){
   return 5;
 }
 function fmtMin(min){
-  min = Math.round(min);
+  min = Math.floor(min); // 꽉 채운 분만 표시 (30초=0분)
   const h = Math.floor(min/60), m = min%60;
   if(h && m) return `${h}시간 ${m}분`;
   if(h) return `${h}시간`;
@@ -47,7 +47,7 @@ function fmtMin(min){
 }
 // 막대그래프용: 00시간 00분 고정 형식
 function fmtHM(min){
-  min = Math.round(min);
+  min = Math.floor(min);
   const h = Math.floor(min/60), m = min%60;
   return h ? `${h}시간 ${pad(m)}분` : `${m}분`;
 }
@@ -410,7 +410,7 @@ function renderWeekGraph(mon){
     const h = Math.max((v/max)*(base-top), 4);
     const x = step*i + step/2 - bw/2, y = base - h;
     const rr = Math.min(r, h);
-    return `<path d="M ${x.toFixed(1)} ${base} L ${x.toFixed(1)} ${(y+rr).toFixed(1)} Q ${x.toFixed(1)} ${y.toFixed(1)} ${(x+rr).toFixed(1)} ${y.toFixed(1)} L ${(x+bw-rr).toFixed(1)} ${y.toFixed(1)} Q ${(x+bw).toFixed(1)} ${y.toFixed(1)} ${(x+bw).toFixed(1)} ${(y+rr).toFixed(1)} L ${(x+bw).toFixed(1)} ${base} Z" fill="var(--mint)"${sel===i?' stroke="#2B2440" stroke-width="1.5"':''}/>`;
+    return `<path d="M ${x.toFixed(1)} ${base} L ${x.toFixed(1)} ${(y+rr).toFixed(1)} Q ${x.toFixed(1)} ${y.toFixed(1)} ${(x+rr).toFixed(1)} ${y.toFixed(1)} L ${(x+bw-rr).toFixed(1)} ${y.toFixed(1)} Q ${(x+bw).toFixed(1)} ${y.toFixed(1)} ${(x+bw).toFixed(1)} ${(y+rr).toFixed(1)} L ${(x+bw).toFixed(1)} ${base} Z" fill="${sel===i?'#A5D4BC':'var(--mint)'}"/>`;
   }).join('');
   let line = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
   for(let i = 0; i < 6; i++){
