@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=34';
+import { sb, fetchAll } from './api.js?v=35';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -496,7 +496,7 @@ function edgeScrollWeek(ev){
 // 배정 카드: 탭 = 완료 토글 / 수평 드래그 또는 꾹(0.3초) 눌러 들기 = 요일 이동·순서 변경·담기로 해제
 // 드는 동안 실제 목록이 밀리면서 들어갈 자리가 보인다
 let wDragging = false;
-window.addEventListener('touchmove', e => { if(wDragging) e.preventDefault(); }, {passive:false});
+window.addEventListener('touchmove', e => { if(wDragging || tdDragCtx) e.preventDefault(); }, {passive:false});
 function bindWTodo(el){
   el.addEventListener('pointerdown', e => {
     const asgId = el.dataset.asg;
@@ -1131,11 +1131,87 @@ function renderSubjects(){
     del('todos', id);
     renderAll();
   }));
+  box.querySelectorAll('.todo-line[data-id]').forEach(bindTodoDrag);
 }
 function toggleCard(e, id){
   if(e.target.closest('.chk,.lec,.td-txt,.g-input,.ghost,.lec-head,.swipe-wrap')) return;
   UI.openSubj.has(id) ? UI.openSubj.delete(id) : UI.openSubj.add(id);
   renderSubjects();
+}
+
+/* 과목탭 할일 순서 변경: 꾹(0.35초) 누르면 들리고, 같은 목록 안에서 밀어 넣기 */
+let tdDragCtx = null;
+function bindTodoDrag(line){
+  line.addEventListener('pointerdown', e => {
+    if(e.target.closest('.chk')) return;
+    if(tdDragCtx) return;
+    const isBig = line.classList.contains('big-line');
+    const host = isBig ? line.closest('.todo-group') : line.closest('.swipe-wrap');
+    if(!host) return;
+    const sx = e.clientX, sy = e.clientY;
+    const timer = setTimeout(() => { cleanupPre(); startTodoDrag(sx, sy, line, host, isBig); }, 350);
+    const premove = ev => {
+      if(Math.hypot(ev.clientX - sx, ev.clientY - sy) > 8){ clearTimeout(timer); cleanupPre(); }
+    };
+    const preup = () => { clearTimeout(timer); cleanupPre(); };
+    const cleanupPre = () => {
+      window.removeEventListener('pointermove', premove);
+      window.removeEventListener('pointerup', preup);
+      window.removeEventListener('pointercancel', preup);
+    };
+    window.addEventListener('pointermove', premove);
+    window.addEventListener('pointerup', preup);
+    window.addEventListener('pointercancel', preup);
+  });
+}
+function startTodoDrag(x, y, line, host, isBig){
+  document.activeElement?.blur();
+  try{ getSelection()?.removeAllRanges(); }catch{ /* ignore */ }
+  const ghost = line.cloneNode(true);
+  ghost.classList.add('ghost-drag');
+  ghost.style.width = line.offsetWidth+'px'; ghost.style.background = '#fff';
+  ghost.style.borderRadius = '10px'; ghost.style.padding = '4px 8px';
+  document.body.appendChild(ghost);
+  host.classList.add('drag-src');
+  const parent = host.parentNode; // 큰 할일: .td-box / 작은 할일: .sub-todos
+  const place = (px, py) => {
+    ghost.style.left = px+'px'; ghost.style.top = py+'px';
+    const el = document.elementFromPoint(px, py);
+    if(!el || host.contains(el)) return;
+    const over = isBig ? el.closest('.todo-group') : el.closest('.sub-todos .swipe-wrap');
+    if(!over || over === host || over.parentNode !== parent) return; // 같은 목록 안에서만
+    const r = over.getBoundingClientRect();
+    if(py < r.top + r.height/2) parent.insertBefore(host, over);
+    else parent.insertBefore(host, over.nextSibling);
+  };
+  const mv = ev => { ev.preventDefault(); place(ev.clientX, ev.clientY); };
+  const finish = save => {
+    window.removeEventListener('pointermove', mv);
+    window.removeEventListener('pointerup', up);
+    window.removeEventListener('pointercancel', cancel);
+    ghost.remove(); host.classList.remove('drag-src');
+    tdDragCtx = null;
+    if(save){
+      // 화면 순서 그대로 순번 저장
+      const lines = isBig
+        ? [...parent.querySelectorAll(':scope > .todo-group .todo-line.big-line')]
+        : [...parent.querySelectorAll(':scope > .swipe-wrap .todo-line[data-id]')];
+      lines.forEach((ln, i) => {
+        const t = todoById(ln.dataset.id);
+        if(t && t.sort_order !== i){ t.sort_order = i; upd('todos', t.id, {sort_order:i}); }
+      });
+      renderAll();
+    }else{
+      renderSubjects();
+    }
+  };
+  const up = () => finish(true);
+  const cancel = () => finish(false);
+  tdDragCtx = { host };
+  window.addEventListener('pointermove', mv);
+  window.addEventListener('pointerup', up);
+  window.addEventListener('pointercancel', cancel);
+  place(x, y);
 }
 const autoRecorded = new Set(); // 이 세션에서 자동 기록한 배정 (체크 취소 시 되돌림용)
 function tdChk(e, id){
@@ -1223,7 +1299,7 @@ function bindSwipe(wrap, onDelete){
     sx = e.clientX; sy = e.clientY; dx = 0; swiping = false;
     const mv = ev => {
       dx = ev.clientX - sx; const dy = ev.clientY - sy;
-      if(!swiping && Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)*1.4){
+      if(!swiping && !tdDragCtx && Math.abs(dx) > 14 && Math.abs(dx) > Math.abs(dy)*1.4){
         swiping = true; wrap.classList.add('swiping');
         if(document.activeElement) document.activeElement.blur();
         // blur가 재렌더를 유발해 행이 교체됐다면 이번 스와이프는 중단
