@@ -105,7 +105,8 @@ async function todoWidget() {
     `&date=eq.${today}&order=sort_order.asc,created_at.asc`);
   const w = new ListWidget();
   w.backgroundColor = new Color(C.card);
-  w.setPadding(14, 14, 12, 12);
+  w.setPadding(12, 14, 12, 12);
+  w.addSpacer(); // 위아래 유동 스페이서 → 내용 세로 가운데 정렬
   const t = w.addText("오늘의 할일");
   t.font = Font.boldRoundedSystemFont(11);
   t.textColor = new Color(C.ink, 0.55);
@@ -224,36 +225,42 @@ async function calendarWidget() {
   for (let d = 1; d <= days; d++) cells.push(d);
   while (cells.length % 7) cells.push(null);
 
-  const GAP = 5;
-  for (let r = 0; r < cells.length / 7; r++) {
-    const row = w.addStack();
-    row.layoutHorizontally();
-    for (let c = 0; c < 7; c++) {
-      const d = cells[r * 7 + c];
-      const cell = row.addStack();
-      cell.layoutVertically();
-      cell.cornerRadius = 9;
-      if (d !== null) {
-        const min = per[ymd(new Date(y, mo, d))] || 0;
-        cell.backgroundColor = new Color(C.LV[level(min)]);
-      }
-      // 유동 스페이서 → 칸이 위젯을 7×N으로 나눠 꽉 채움 (빈 칸은 투명 자리만 차지)
-      cell.addSpacer();
-      const mid = cell.addStack();
-      mid.addSpacer();
-      cell.addSpacer();
-      if (c < 6) row.addSpacer(GAP);
+  // 달력 그리드를 이미지로 그려서 칸이 항상 정사각형을 유지 (가로에 맞춰 비율 고정 축소/확대)
+  const PX = 90, GAPX = 10, RAD = 20; // 고해상도 캔버스 기준 px
+  const rowsN = cells.length / 7;
+  const ctx = new DrawContext();
+  ctx.opaque = false;
+  ctx.respectScreenScale = true;
+  ctx.size = new Size(7 * PX + 6 * GAPX, rowsN * PX + (rowsN - 1) * GAPX);
+  ctx.setTextAlignedCenter();
+  const todayStr = ymd(now);
+  for (let i = 0; i < cells.length; i++) {
+    const d = cells[i];
+    if (d === null) continue;
+    const x = (i % 7) * (PX + GAPX), yTop = Math.floor(i / 7) * (PX + GAPX);
+    const ds = ymd(new Date(y, mo, d));
+    if (ds > todayStr) {
+      ctx.setFont(Font.mediumSystemFont(30));
+      ctx.setTextColor(new Color(C.ghost));
+      ctx.drawTextInRect(String(d), new Rect(x, yTop + (PX - 36) / 2, PX, 36));
+    } else {
+      const p = new Path();
+      p.addRoundedRect(new Rect(x, yTop, PX, PX), RAD, RAD);
+      ctx.addPath(p);
+      ctx.setFillColor(new Color(C.LV[level(per[ds] || 0)]));
+      ctx.fillPath();
     }
-    w.addSpacer(GAP);
   }
+  const img = w.addImage(ctx.getImage());
+  img.applyFittingContentMode();
+  img.centerAlignImage();
 
-  w.addSpacer(6);
+  w.addSpacer();
   const foot = w.addStack();
   foot.addSpacer();
   const f = foot.addText(`${studyDays}일 공부 ${now.getDate() - studyDays}일 놀기`);
   f.font = Font.mediumSystemFont(12);
   f.textColor = new Color(C.sub);
-  foot.addSpacer();
   return w;
 }
 
