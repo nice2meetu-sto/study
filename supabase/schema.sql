@@ -81,8 +81,12 @@ create table if not exists lectures (
   subject_id  uuid not null references subjects(id) on delete cascade,
   name        text not null,
   total_count int  not null default 1,
+  sort_order  int  not null default 0,
   created_at  timestamptz not null default now()
 );
+
+-- 기존 설치에 컬럼 추가 (여러 번 실행해도 안전)
+alter table lectures add column if not exists sort_order int not null default 0;
 
 -- 강의별 시청 체크
 create table if not exists lecture_episodes (

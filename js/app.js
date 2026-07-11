@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=35';
+import { sb, fetchAll } from './api.js?v=36';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -1087,7 +1087,7 @@ function toggleLecCard(e, id){
 function renderSubjects(){
   const box = $('#subj-list');
   if(UI.filter === '인강'){
-    box.innerHTML = `<div class="lec-tab">${S.lectures.slice().sort(byCreated).map(L => lectureCardHtml(L)).join('')}</div>`;
+    box.innerHTML = `<div class="lec-tab">${S.lectures.slice().sort(bySort).map(L => lectureCardHtml(L)).join('')}</div>`;
     return;
   }
   box.innerHTML = S.cats.slice().sort(bySort).map(cat => {
@@ -1102,7 +1102,7 @@ function renderSubjects(){
         .filter(t => isActive(t) ||
           S.todos.some(c => c.parent_id === t.id && isActive(c))); // 살아있는 작은 할일이 있으면 부모 유지
       // 완주한 인강은 과목 카드에서는 숨김 (인강 탭에서 확인)
-      const lecs = S.lectures.filter(l => l.subject_id === s.id).sort(byCreated).filter(L => !lecStats(L).complete);
+      const lecs = S.lectures.filter(l => l.subject_id === s.id).sort(bySort).filter(L => !lecStats(L).complete);
       return `<div class="subj-card ${UI.openSubj.has(s.id)?'open':''}" onclick="toggleCard(event,'${s.id}')">
         <div class="subj-top"><span class="tag" style="background:${s.color}"></span>
           <span class="nm">${esc(s.name)}</span><span class="badge b-${s.status}">${s.status}</span></div>
@@ -1445,6 +1445,11 @@ function startCatDrag(e, id){
   const line = e.target.closest('.set-line');
   beginSetDrag(e, 'cat', line.closest('.cat-group'), line);
 }
+function startLecDrag(e, id){
+  e.stopPropagation(); e.preventDefault();
+  const line = e.target.closest('.set-line');
+  beginSetDrag(e, 'lec', line.closest('.swipe-wrap'), line);
+}
 function beginSetDrag(e, type, host, line){
   const ghost = line.cloneNode(true);
   ghost.classList.add('ghost-drag');
@@ -1470,6 +1475,12 @@ function moveSetDrag(ev){
   if(type === 'cat'){
     const over = el.closest('#set-list .cat-group[data-cat]');
     if(!over || over === host) return;
+    const r = over.getBoundingClientRect();
+    if(ev.clientY < r.top + r.height/2) over.parentNode.insertBefore(host, over);
+    else over.parentNode.insertBefore(host, over.nextSibling);
+  }else if(type === 'lec'){
+    const over = el.closest('#lec-list .swipe-wrap');
+    if(!over || over === host || over.parentNode !== host.parentNode) return;
     const r = over.getBoundingClientRect();
     if(ev.clientY < r.top + r.height/2) over.parentNode.insertBefore(host, over);
     else over.parentNode.insertBefore(host, over.nextSibling);
@@ -1506,6 +1517,13 @@ function endSetDrag(){
       const c = catById(g.dataset.cat);
       if(c && c.sort_order !== i){ c.sort_order = i; upd('categories', c.id, {sort_order:i}); }
     });
+  }else if(type === 'lec'){
+    $$('#lec-list .set-line[data-lec-id]').forEach((ln, i) => {
+      const L = lecById(ln.dataset.lecId);
+      if(L && L.sort_order !== i){ L.sort_order = i; upd('lectures', L.id, {sort_order:i}); }
+    });
+    renderSubjects(); renderLecSet();
+    return;
   }else{
     // 화면 순서 그대로 각 분류의 과목 소속·순번 저장
     $$('#set-list .cat-group[data-cat]').forEach(g => {
@@ -1529,12 +1547,13 @@ function endSetDrag(){
 /* ── 인강 설정 탭 ── */
 function renderLecSet(){
   const box = $('#lec-list');
-  const lecs = S.lectures.slice().sort(byCreated);
+  const lecs = S.lectures.slice().sort(bySort);
   box.innerHTML = `
     ${lecs.length ? `<div class="cat-group">
       ${lecs.map(L => `
         <div class="swipe-wrap"><div class="swipe-del-bg">🗑</div>
         <div class="set-line" data-lec-id="${L.id}">
+          <span class="drag-h" onpointerdown="startLecDrag(event,'${L.id}')" aria-hidden="true">⠿</span>
           <span class="c-dot" style="background:${subjColor(L.subject_id)}" aria-hidden="true"></span>
           <span class="td-txt" contenteditable="true"
             onclick="event.stopPropagation()" onblur="lecEdit(this,'${L.id}')"
@@ -1596,7 +1615,8 @@ function addLecSet(){
   const n = parseInt($('#in-lec-n').value);
   const sid = $('#sel-subj').value;
   if(!nm || !(n >= 1) || !sid) return;
-  const lec = { id:uid(), user_id:S.user.id, subject_id:sid, name:nm, total_count:n };
+  const lec = { id:uid(), user_id:S.user.id, subject_id:sid, name:nm, total_count:n,
+    sort_order: S.lectures.length ? Math.max(...S.lectures.map(l => l.sort_order || 0))+1 : 0 };
   S.lectures.push({...lec, created_at:new Date().toISOString()});
   ins('lectures', lec);
   const eps = Array.from({length:n}, (_,i) => ({ id:uid(), user_id:S.user.id, lecture_id:lec.id, no:i+1, done:false }));
@@ -1716,7 +1736,7 @@ $('#login-form').addEventListener('submit', async e => {
 Object.assign(window, {
   toggleAsg, removeAsg, pickDay, setFilter, toggleCard, tdChk, tdEdit, tdGhost,
   toggleLec, toggleLecCard, lecTgl, catEdit, catGhost, subjEdit, subjGhost, cycleStatus,
-  togglePick, pickColor, startSubjDrag, startCatDrag, lecEdit, lecTotal, addLecSet,
+  togglePick, pickColor, startSubjDrag, startCatDrag, startLecDrag, lecEdit, lecTotal, addLecSet,
   ddayEdit, ddayDate, ddayGhost, openSessSheet, sessTime, addSessManual, toggleStatAvg, wgPick,
 });
 
