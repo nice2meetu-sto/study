@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=31';
+import { sb, fetchAll } from './api.js?v=32';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -716,6 +716,19 @@ function setFace(focus){
   $('#face-focus').style.display = focus ? '' : 'none';
   $('#face-idle').style.display = focus ? 'none' : '';
 }
+// 별똥별 배경: 6개 별이가 45도 사선으로 10초에 걸쳐 지나간다 (타이머 작동 중에만)
+function initStarRain(){
+  const conf = [
+    { left:'4%',   size:26, delay:0,    op:.5  },
+    { left:'26%',  size:18, delay:-3.4, op:.4  },
+    { left:'48%',  size:30, delay:-6.6, op:.55 },
+    { left:'-14%', size:22, delay:-5.0, op:.45 },
+    { left:'66%',  size:20, delay:-1.7, op:.4  },
+    { left:'-32%', size:24, delay:-8.3, op:.5  },
+  ];
+  $('#star-rain').innerHTML = conf.map(c =>
+    `<span class="sr" style="left:${c.left};width:${c.size}px;opacity:${c.op};animation-delay:${c.delay}s">${starSVG('#FFD983','basic')}</span>`).join('');
+}
 function renderTimer(){
   tick();
   const running = !!T.startAt, paused = !running && T.base > 0;
@@ -726,6 +739,7 @@ function renderTimer(){
   setFace(running);
   $('#star-study').style.display = running ? '' : 'none';
   $('#star-break').style.display = paused ? '' : 'none';
+  $('#star-rain').classList.toggle('on', running);
   renderTimerChips();
 }
 function renderTimerChips(){
@@ -1560,6 +1574,7 @@ async function boot(){
   $('#login').style.display = 'none';
   $('#app').style.display = '';
   $('#memo').innerText = S.user.user_metadata?.memo || '';
+  initStarRain();
   restoreTimer();
   renderAll();
   goScreen('scr-home');

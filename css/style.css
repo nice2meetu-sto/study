@@ -10,8 +10,21 @@
   --r-lg:26px; --r-md:18px;
 }
 *{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent;}
-html,body{background:var(--bg);}
+html{background:var(--bg);}
+body{background:transparent;}
 body{font-family:'Pretendard',sans-serif;color:var(--ink);min-height:100dvh;}
+
+/* ═══ 별똥별 배경 (타이머 작동 중, 카드·글자 뒤) ═══ */
+#star-rain{position:fixed;inset:0;z-index:-1;pointer-events:none;overflow:hidden;
+  opacity:0;transition:opacity .8s ease;}
+#star-rain.on{opacity:1;}
+#star-rain .sr{position:absolute;top:-14vh;animation:starfall 10s linear infinite;}
+#star-rain:not(.on) .sr{animation-play-state:paused;} /* 꺼져 있으면 GPU 작업 0 */
+#star-rain .sr svg{width:100%;height:auto;display:block;}
+@keyframes starfall{
+  from{transform:translate3d(0,0,0) rotate(0deg);}
+  to{transform:translate3d(125vh,125vh,0) rotate(360deg);}
+}
 
 /* ═══ 로그인 ═══ */
 #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;}
