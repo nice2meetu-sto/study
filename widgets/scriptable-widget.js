@@ -7,7 +7,7 @@
 //  3) 아래 EMAIL / PASSWORD 에 앱 로그인 정보 입력
 //  4) 홈 화면 길게 눌러 위젯 추가 → Scriptable 선택 → 크기 선택
 //     → 위젯 길게 눌러 "위젯 편집" → Script: 공부별
-//  크기별 화면: 소형=오늘 할일 / 중형=공부 요약 4카드 / 대형=기록 달력
+//  크기별 화면: 소형=오늘 할일 / 중형=공부 요약 4카드 / 대형=월별 공부 달력
 // ═══════════════════════════════════════════════════════
 
 // ── 로그인 정보 (본인 기기에만 저장됩니다) ──
@@ -164,25 +164,33 @@ async function statsWidget() {
       const s = row.addStack();
       s.layoutVertically();
       s.backgroundColor = new Color(card.bg);
-      s.cornerRadius = 14;
+      s.cornerRadius = 16;
       s.setPadding(10, 12, 10, 12);
-      const num = s.addText(card.num);
-      num.font = Font.boldRoundedSystemFont(17);
+      s.addSpacer(); // 유동 스페이서 → 카드가 위젯 높이/너비를 나눠 갖고 내용은 가운데
+      const numRow = s.addStack();
+      numRow.addSpacer();
+      const num = numRow.addText(card.num);
+      num.font = Font.boldRoundedSystemFont(19);
       num.textColor = new Color(C.ink);
       num.lineLimit = 1;
-      num.minimumScaleFactor = 0.6;
-      s.addSpacer(2);
-      const lbl = s.addText(card.lbl);
-      lbl.font = Font.mediumSystemFont(10);
+      num.minimumScaleFactor = 0.5;
+      numRow.addSpacer();
+      s.addSpacer(3);
+      const lblRow = s.addStack();
+      lblRow.addSpacer();
+      const lbl = lblRow.addText(card.lbl);
+      lbl.font = Font.mediumSystemFont(11);
       lbl.textColor = new Color(C.sub);
-      if (c === 0) row.addSpacer(8);
+      lblRow.addSpacer();
+      s.addSpacer();
+      if (c === 0) row.addSpacer(10);
     }
-    if (r === 0) w.addSpacer(8);
+    if (r === 0) w.addSpacer(10);
   }
   return w;
 }
 
-// ═══ 대형: 기록 달력 ═══
+// ═══ 대형: 공부 달력 (홈 히트맵과 같은 형식) ═══
 async function calendarWidget() {
   const now = new Date();
   const y = now.getFullYear(), mo = now.getMonth();
@@ -191,83 +199,61 @@ async function calendarWidget() {
   const sessions = await api(
     `sessions?select=started_at,duration_sec&started_at=gte.${from}&started_at=lt.${to}`);
   const per = perDay(sessions);
-  let totalMin = 0;
-  for (const k in per) totalMin += per[k];
+  let totalMin = 0, studyDays = 0;
+  for (const k in per) { totalMin += per[k]; if (per[k] > 0) studyDays++; }
 
   const w = new ListWidget();
   w.backgroundColor = new Color(C.card);
-  w.setPadding(14, 16, 12, 16);
+  w.setPadding(16, 16, 13, 16);
 
   const head = w.addStack();
   head.centerAlignContent();
-  const title = head.addText(`${y}년 ${mo + 1}월`);
-  title.font = Font.boldRoundedSystemFont(15);
+  const title = head.addText(`${mo + 1}월 공부 달력`);
+  title.font = Font.boldRoundedSystemFont(16);
   title.textColor = new Color(C.ink);
   head.addSpacer();
   const tot = head.addText(`총 ${fmtHM(totalMin)}`);
-  tot.font = Font.mediumSystemFont(11);
+  tot.font = Font.mediumSystemFont(12);
   tot.textColor = new Color(C.sub);
-  w.addSpacer(8);
-
-  const CW = 38, CH = 30, GAP = 4;
-  const dowRow = w.addStack();
-  dowRow.layoutHorizontally();
-  for (let i = 0; i < 7; i++) {
-    const c = dowRow.addStack();
-    c.size = new Size(CW, 14);
-    c.centerAlignContent();
-    c.addSpacer();
-    const t = c.addText(DOW[i]);
-    t.font = Font.semiboldRoundedSystemFont(9);
-    t.textColor = new Color(C.sub);
-    c.addSpacer();
-    if (i < 6) dowRow.addSpacer(GAP);
-  }
-  w.addSpacer(5);
+  w.addSpacer(12);
 
   const days = new Date(y, mo + 1, 0).getDate();
   const blanks = dowIdx(new Date(y, mo, 1));
-  const todayStr = ymd(now);
   const cells = [];
   for (let b = 0; b < blanks; b++) cells.push(null);
   for (let d = 1; d <= days; d++) cells.push(d);
   while (cells.length % 7) cells.push(null);
 
+  const GAP = 5;
   for (let r = 0; r < cells.length / 7; r++) {
     const row = w.addStack();
     row.layoutHorizontally();
     for (let c = 0; c < 7; c++) {
       const d = cells[r * 7 + c];
       const cell = row.addStack();
-      cell.size = new Size(CW, CH);
-      cell.centerAlignContent();
+      cell.layoutVertically();
       cell.cornerRadius = 9;
       if (d !== null) {
-        const ds = ymd(new Date(y, mo, d));
-        const isFuture = ds > todayStr;
-        const v = level(per[ds] || 0);
-        if (isFuture) {
-          cell.addSpacer();
-          const t = cell.addText(String(d));
-          t.font = Font.mediumSystemFont(10);
-          t.textColor = new Color(C.ghost);
-          cell.addSpacer();
-        } else if (v === 0) {
-          cell.backgroundColor = new Color(C.line);
-        } else {
-          cell.backgroundColor = new Color(C.LV[Math.max(1, v - 1)], 0.35);
-          cell.addSpacer();
-          const star = cell.addText("★");
-          star.font = Font.boldSystemFont(17);
-          star.textColor = new Color(C.LV[v]);
-          cell.addSpacer();
-        }
+        const min = per[ymd(new Date(y, mo, d))] || 0;
+        cell.backgroundColor = new Color(C.LV[level(min)]);
       }
+      // 유동 스페이서 → 칸이 위젯을 7×N으로 나눠 꽉 채움 (빈 칸은 투명 자리만 차지)
+      cell.addSpacer();
+      const mid = cell.addStack();
+      mid.addSpacer();
+      cell.addSpacer();
       if (c < 6) row.addSpacer(GAP);
     }
-    if (r < cells.length / 7 - 1) w.addSpacer(GAP);
+    w.addSpacer(GAP);
   }
-  w.addSpacer();
+
+  w.addSpacer(6);
+  const foot = w.addStack();
+  foot.addSpacer();
+  const f = foot.addText(`${studyDays}일 공부 ${now.getDate() - studyDays}일 놀기`);
+  f.font = Font.mediumSystemFont(12);
+  f.textColor = new Color(C.sub);
+  foot.addSpacer();
   return w;
 }
 
