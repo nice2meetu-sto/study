@@ -19,6 +19,13 @@ Supabase 대시보드 → **Authentication → Users → Add user**
 - (선택) 혼자만 쓰려면 **Authentication → Sign In / Up** 에서 *Allow new users to sign up* 을 꺼두세요
 - (선택) 홈 인사말에 이름을 띄우려면 해당 유저의 **User Metadata**에 `{"name": "수민"}` 을 추가하세요
 
+### (선택) 앱처럼 설치하기 (PWA)
+사이트 접속 후:
+- **갤럭시 (Chrome/삼성인터넷)**: 메뉴(⋮ 또는 ≡) → **"홈 화면에 추가"** 또는 **"앱 설치"**
+- **아이폰 (Safari)**: 공유 버튼 → **"홈 화면에 추가"**
+
+홈 화면의 별이 아이콘으로 열면 주소창 없이 전체 화면 앱처럼 실행됩니다.
+
 ### 3. GitHub Pages 켜기
 저장소 **Settings → Pages → Deploy from a branch** → `main` / root 선택.
 잠시 후 `https://<계정>.github.io/study/` 로 접속할 수 있습니다.
