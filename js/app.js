@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=22';
+import { sb, fetchAll } from './api.js?v=23';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -401,12 +401,16 @@ function renderWeekGraph(mon){
   const W = 336, H = 150, base = 118, top = 14;
   const max = Math.max(...vals, 60);
   const dmax = Math.max(...dones, 1);
-  const step = W/7, bw = 26;
+  const step = W/7, bw = 26, r = 6;
+  const sel = UI.wgSel;
   const pts = dones.map((c,i) => ({ x: step*i + step/2, y: base - (c/dmax)*(base-top) }));
+  // 막대: 위쪽만 라운딩
   const bars = vals.map((v,i) => {
     if(v <= 0) return '';
     const h = Math.max((v/max)*(base-top), 4);
-    return `<rect x="${(step*i + step/2 - bw/2).toFixed(1)}" y="${(base-h).toFixed(1)}" width="${bw}" height="${h.toFixed(1)}" rx="6" fill="var(--mint)"/>`;
+    const x = step*i + step/2 - bw/2, y = base - h;
+    const rr = Math.min(r, h);
+    return `<path d="M ${x.toFixed(1)} ${base} L ${x.toFixed(1)} ${(y+rr).toFixed(1)} Q ${x.toFixed(1)} ${y.toFixed(1)} ${(x+rr).toFixed(1)} ${y.toFixed(1)} L ${(x+bw-rr).toFixed(1)} ${y.toFixed(1)} Q ${(x+bw).toFixed(1)} ${y.toFixed(1)} ${(x+bw).toFixed(1)} ${(y+rr).toFixed(1)} L ${(x+bw).toFixed(1)} ${base} Z" fill="var(--mint)"${sel===i?' stroke="#2B2440" stroke-width="1.5"':''}/>`;
   }).join('');
   let line = `M ${pts[0].x.toFixed(1)} ${pts[0].y.toFixed(1)}`;
   for(let i = 0; i < 6; i++){
@@ -415,12 +419,26 @@ function renderWeekGraph(mon){
   }
   const labels = DOW.map((d,i) =>
     `<text x="${(step*i + step/2).toFixed(1)}" y="${H-8}" text-anchor="middle" font-size="10.5" font-weight="600" fill="#8C86A3" font-family="Pretendard,sans-serif">${d}</text>`).join('');
+  // 선택한 요일의 공부시간 라벨
+  let selLbl = '';
+  if(sel != null){
+    const h = vals[sel] > 0 ? Math.max((vals[sel]/max)*(base-top), 4) : 0;
+    const ly = Math.max(base - h - 7, 11);
+    selLbl = `<text x="${(step*sel + step/2).toFixed(1)}" y="${ly.toFixed(1)}" text-anchor="middle" font-size="11" font-weight="700" fill="#2B2440" font-family="Pretendard,sans-serif">${fmtHM(vals[sel])}</text>`;
+  }
+  // 탭 영역 (열 전체)
+  const hits = vals.map((v,i) =>
+    `<rect x="${(step*i).toFixed(1)}" y="0" width="${step.toFixed(1)}" height="${H}" fill="transparent" style="cursor:pointer" onclick="wgPick(${i})"/>`).join('');
   $('#wg-chart').innerHTML = `<svg viewBox="0 0 ${W} ${H}" style="width:100%;display:block" aria-label="요일별 공부시간 그래프">
     <line x1="6" x2="${W-6}" y1="${base+0.5}" y2="${base+0.5}" stroke="#EFE9DE" stroke-width="1.5"/>
     ${bars}
-    <path d="${line}" fill="none" stroke="#F08A3C" stroke-width="2.5" stroke-linecap="round"/>
-    ${labels}
+    <path d="${line}" fill="none" stroke="#F08A3C" stroke-width="1.8" stroke-linecap="round"/>
+    ${labels}${selLbl}${hits}
   </svg>`;
+}
+function wgPick(i){
+  UI.wgSel = UI.wgSel === i ? null : i;
+  renderWeekGraph(mondayOf(new Date(), UI.wkOffset));
 }
 function scrollWeekTo(i, smooth){
   const row = $('#week-row');
@@ -871,9 +889,9 @@ function renderSessSheet(){
     <div class="set-sec">
       <p class="t">기록 추가</p>
       <div class="set-row"><select id="sess-subj" aria-label="과목">${subjOpts}</select></div>
-      <div class="set-row" style="align-items:center">
+      <div class="set-row">
         <input type="time" id="sess-start" class="date-input" style="flex:1" value="09:00" aria-label="시작 시각">
-        <span class="meta">~</span>
+        <span class="meta" style="align-self:center">~</span>
         <input type="time" id="sess-end" class="date-input" style="flex:1" value="10:00" aria-label="종료 시각">
         <button class="set-add" onclick="addSessManual()">추가</button>
       </div>
@@ -1478,11 +1496,11 @@ $('#btn-dday-close').addEventListener('click', closeDdaySheet);
 $('#ovl-dday').addEventListener('click', e => { if(e.target === $('#ovl-dday')) closeDdaySheet(); });
 $('#day-edit-btn').addEventListener('click', openSessSheet);
 $('#mo-today').addEventListener('click', () => { UI.moOffset = 0; UI.selDay = null; renderMonth(); });
-$('#wk-today').addEventListener('click', () => { UI.wkOffset = 0; UI.weekScrolled = false; renderWeek(); });
+$('#wk-today').addEventListener('click', () => { UI.wkOffset = 0; UI.wgSel = null; UI.weekScrolled = false; renderWeek(); });
 $('#btn-sess-close').addEventListener('click', () => $('#ovl-sess').classList.remove('show'));
 $('#ovl-sess').addEventListener('click', e => { if(e.target === $('#ovl-sess')) $('#ovl-sess').classList.remove('show'); });
-$('#wk-prev').addEventListener('click', () => { if(UI.wkOffset > MIN_WK){ UI.wkOffset--; renderWeek(); } });
-$('#wk-next').addEventListener('click', () => { if(UI.wkOffset < MAX_WK){ UI.wkOffset++; renderWeek(); } });
+$('#wk-prev').addEventListener('click', () => { if(UI.wkOffset > MIN_WK){ UI.wkOffset--; UI.wgSel = null; renderWeek(); } });
+$('#wk-next').addEventListener('click', () => { if(UI.wkOffset < MAX_WK){ UI.wkOffset++; UI.wgSel = null; renderWeek(); } });
 $('#mo-prev').addEventListener('click', () => { if(UI.moOffset > MIN_MO){ UI.moOffset--; UI.selDay = null; renderMonth(); } });
 $('#mo-next').addEventListener('click', () => { if(UI.moOffset < 0){ UI.moOffset++; UI.selDay = null; renderMonth(); } });
 $('#btn-start').addEventListener('click', onStartPause);
@@ -1514,7 +1532,7 @@ Object.assign(window, {
   toggleAsg, removeAsg, pickDay, setFilter, toggleCard, tdChk, tdEdit, tdGhost,
   toggleLec, toggleLecCard, lecTgl, catEdit, catGhost, subjEdit, subjGhost, cycleStatus,
   togglePick, pickColor, startSubjDrag, startCatDrag, lecEdit, lecTotal, addLecSet,
-  ddayEdit, ddayDate, ddayGhost, openSessSheet, sessTime, addSessManual, toggleStatAvg,
+  ddayEdit, ddayDate, ddayGhost, openSessSheet, sessTime, addSessManual, toggleStatAvg, wgPick,
 });
 
 /* 작은 할일 입력칸: 해당 할일 그룹에 포커스가 있을 때만 표시 */
