@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=21';
+import { sb, fetchAll } from './api.js?v=22';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -516,10 +516,15 @@ function bindWTodo(el){
 
 /* ── 할일 담기 풀 + 드래그 ── */
 function poolItems(sid){
-  // 미완료 리프 할일: 작은 할일이 없는 큰 할일 + 작은 할일
-  const all = S.todos.filter(t => t.subject_id === sid && !t.done);
-  return all.filter(t => t.parent_id || !all.some(c => c.parent_id === t.id))
-    .sort(bySort);
+  // 미완료 리프 할일을 과목 탭 표시 순서대로: 큰 할일 순서 → 그 안의 작은 할일 순서
+  const bigs = S.todos.filter(t => t.subject_id === sid && !t.parent_id).sort(bySort);
+  const out = [];
+  for(const b of bigs){
+    const subs = S.todos.filter(t => t.parent_id === b.id).sort(bySort);
+    if(subs.length) out.push(...subs.filter(t => !t.done));
+    else if(!b.done) out.push(b);
+  }
+  return out;
 }
 // 보고 있는 주 범위에서 이 할일의 배정 찾기 (할일 하나 = 주당 요일 하나)
 function weekAssignmentOf(todoId){
