@@ -26,6 +26,16 @@ Supabase 대시보드 → **Authentication → Users → Add user**
 
 홈 화면의 별이 아이콘으로 열면 주소창 없이 전체 화면 앱처럼 실행됩니다.
 
+### (선택) 아이패드/아이폰 홈 화면 위젯 (Scriptable)
+[`widgets/scriptable-widget.js`](widgets/scriptable-widget.js) 하나로 3종 위젯을 씁니다.
+1. App Store에서 **Scriptable** 설치
+2. Scriptable → **+** → 파일 내용 전체 붙여넣기 → 이름 "공부별"
+3. 스크립트 상단의 `EMAIL` / `PASSWORD`에 앱 로그인 정보 입력 (본인 기기에만 저장됩니다)
+4. 홈 화면 길게 눌러 위젯 추가 → **Scriptable** 선택 → 크기 선택 → 위젯 길게 눌러 "위젯 편집" → Script: 공부별
+
+크기별 화면: **소형** = 오늘 할일 / **중형** = 타이머 요약 4카드 / **대형** = 기록 달력.
+저장된 공부 기록 기준이며 약 15분 주기로 자동 갱신됩니다 (진행 중인 타이머는 반영되지 않음).
+
 ### 3. GitHub Pages 켜기
 저장소 **Settings → Pages → Deploy from a branch** → `main` / root 선택.
 잠시 후 `https://<계정>.github.io/study/` 로 접속할 수 있습니다.
