@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=29';
+import { sb, fetchAll } from './api.js?v=30';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -266,7 +266,7 @@ function renderHome(){
 
   // 오늘의 할일 (플랜의 오늘 배정과 동일 데이터)
   $('#home-todo-lbl').textContent = `오늘의 할일 · ${DOW[dowIdx(now)]}요일`;
-  const asg = S.assignments.filter(a => a.date === today).sort(byCreated);
+  const asg = S.assignments.filter(a => a.date === today).sort(bySort); // 플랜의 그날 순서와 동일
   const groups = new Map();
   for(const a of asg){
     const t = todoById(a.todo_id);
@@ -1078,7 +1078,12 @@ function renderSubjects(){
     if(UI.filter !== '전체') subs = subs.filter(s => s.status === UI.filter);
     if(!subs.length) return '';
     return `<p class="cat-lbl">${esc(cat.name)}</p>` + subs.map(s => {
-      const bigs = S.todos.filter(t => t.subject_id === s.id && !t.parent_id).sort(bySort);
+      // 자동 숨김: 오늘 이전에 완료된 할일 (미완료 / 오늘 이후 배정이 있는 완료는 표시)
+      const hasTodayPlus = tid => S.assignments.some(a => a.todo_id === tid && a.date >= todayStr());
+      const isActive = t => !t.done || hasTodayPlus(t.id);
+      const bigs = S.todos.filter(t => t.subject_id === s.id && !t.parent_id).sort(bySort)
+        .filter(t => isActive(t) ||
+          S.todos.some(c => c.parent_id === t.id && isActive(c))); // 살아있는 작은 할일이 있으면 부모 유지
       // 완주한 인강은 과목 카드에서는 숨김 (인강 탭에서 확인)
       const lecs = S.lectures.filter(l => l.subject_id === s.id).sort(byCreated).filter(L => !lecStats(L).complete);
       return `<div class="subj-card ${UI.openSubj.has(s.id)?'open':''}" onclick="toggleCard(event,'${s.id}')">
@@ -1090,7 +1095,9 @@ function renderSubjects(){
               <div class="todo-group">
                 ${todoLineHtml(t, true)}
                 <div class="sub-todos">
-                  ${S.todos.filter(c => c.parent_id === t.id).sort(bySort).map(c => todoLineHtml(c, false)).join('')}
+                  ${S.todos.filter(c => c.parent_id === t.id).sort(bySort)
+                    .filter(c => isActive(t) ? true : isActive(c)) // 부모가 과거 완료면 과거 완료된 작은 할일은 숨김
+                    .map(c => todoLineHtml(c, false)).join('')}
                   ${ghostLineHtml(s.id, t.id)}
                 </div>
               </div>`).join('')}
