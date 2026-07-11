@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=28';
+import { sb, fetchAll } from './api.js?v=29';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -75,6 +75,7 @@ const doingSubjects = () => {
 };
 const subjColor = id => { const s = subjById(id); return s ? s.color : GRAY; };
 const subjName  = id => { const s = subjById(id); return s ? s.name : '삭제된 과목'; };
+const asgText = a => { const t = todoById(a.todo_id); return t ? t.text : (a.title || ''); };
 
 /* ═════════ 저장 헬퍼 (낙관적 갱신 + 백그라운드 저장) ═════════ */
 let toastTimer;
@@ -105,8 +106,12 @@ const del = (table,id) => save(() => sb.from(table).delete().eq('id',id));
 /* 로컬 캐스케이드 삭제 (DB는 FK cascade가 처리) */
 function removeTodoLocal(id){
   S.todos.filter(t => t.parent_id === id).forEach(c => removeTodoLocal(c.id));
-  S.assignments = S.assignments.filter(a => a.todo_id !== id);
-  S.todos = S.todos.filter(t => t.id !== id);
+  const t = todoById(id);
+  // 배정 기록은 남긴다 (DB는 FK set null) — 이름 스냅샷 유지
+  S.assignments.forEach(a => {
+    if(a.todo_id === id){ if(!a.title && t) a.title = t.text; a.todo_id = null; }
+  });
+  S.todos = S.todos.filter(x => x.id !== id);
 }
 function removeLectureLocal(id){
   S.episodes = S.episodes.filter(e => e.lecture_id !== id);
@@ -264,17 +269,17 @@ function renderHome(){
   const asg = S.assignments.filter(a => a.date === today).sort(byCreated);
   const groups = new Map();
   for(const a of asg){
-    const t = todoById(a.todo_id); if(!t) continue;
-    const key = t.subject_id;
+    const t = todoById(a.todo_id);
+    const key = t ? t.subject_id : 'deleted';
     if(!groups.has(key)) groups.set(key, []);
-    groups.get(key).push({a, t});
+    groups.get(key).push(a);
   }
   $('#home-todos').innerHTML = groups.size ? [...groups.entries()].map(([sid, list]) => `
     <div class="subj-group">
-      <div class="g-lbl"><i style="background:${subjColor(sid)}"></i>${esc(subjName(sid))}</div>
-      ${list.map(({a,t}) => `<div class="todo-line">
+      <div class="g-lbl"><i style="background:${sid==='deleted'?GRAY:subjColor(sid)}"></i>${sid==='deleted'?'지난 기록':esc(subjName(sid))}</div>
+      ${list.map(a => `<div class="todo-line">
         <button class="chk ${a.done?'on':''}" onclick="toggleAsg('${a.id}')" aria-label="완료 체크">✓</button>
-        <span class="${a.done?'done-txt':''}">${esc(t.text)}</span></div>`).join('')}
+        <span class="${a.done?'done-txt':''}">${esc(asgText(a))}</span></div>`).join('')}
     </div>`).join('')
     : '<p class="todo-empty">오늘의 할일을 추가해보세요</p>';
 }
@@ -356,10 +361,11 @@ function renderWeek(){
     return `<div class="day-col ${isToday?'today':''} ${editable?'':'past'}" data-date="${ds}">
       <div class="day-head"><span class="dow">${DOW[i]}</span><span class="date">${d.getMonth()+1}.${d.getDate()}${isToday?' · 오늘':''}</span>${allDone?'<span class="day-thumb">👍</span>':''}</div>
       ${list.map(a => {
-        const t = todoById(a.todo_id); if(!t) return '';
-        return `<div class="w-todo ${a.done?'done':''}" data-asg="${a.id}" style="background:${subjColor(t.subject_id)}30"
+        const t = todoById(a.todo_id);
+        const color = t ? subjColor(t.subject_id) : GRAY;
+        return `<div class="w-todo ${a.done?'done':''}" data-asg="${a.id}" style="background:${color}30"
           role="button" aria-label="완료 토글">
-          <span class="${a.done?'done-txt':''}">${esc(t.text)}</span>
+          <span class="${a.done?'done-txt':''}">${esc(asgText(a))}</span>
         </div>`;
       }).join('')}
     </div>`;
@@ -463,7 +469,16 @@ function toggleAsg(id){
   // 할일 원본과 동기화
   const t = todoById(a.todo_id);
   if(t && t.done !== a.done){ t.done = a.done; upd('todos', t.id, {done:a.done}); }
+  if(a.done && t) clearFutureAssignments(t.id, a.id); // 끝난 할일의 미래 계획 정리
   renderAll();
+}
+// 할일이 완료되면 미래 날짜의 미완료 배정은 삭제 (오늘·과거 기록은 유지)
+function clearFutureAssignments(todoId, exceptId){
+  const today = todayStr();
+  const gone = S.assignments.filter(x =>
+    x.todo_id === todoId && x.date > today && !x.done && x.id !== exceptId);
+  gone.forEach(x => del('assignments', x.id));
+  if(gone.length) S.assignments = S.assignments.filter(x => !gone.includes(x));
 }
 function removeAsg(id){
   S.assignments = S.assignments.filter(a => a.id !== id);
@@ -657,6 +672,7 @@ function bindPoolDrag(){
           }
         }else{
           const row = { id:uid(), user_id:S.user.id, todo_id:todoId, date, done:false,
+            title: todoById(todoId)?.text ?? null,
             sort_order: S.assignments.filter(a => a.date === date).length };
           S.assignments.push({...row, created_at:new Date().toISOString()});
           ins('assignments', row);
@@ -894,8 +910,8 @@ function renderDayCard(y, mo){
       <span class="tot">${mo+1}월 ${UI.selDay}일 · 총 ${fmtMin(total)}</span></div>`
     + barRows(map, fmtHM)
     + (doneAsg.length ? `<div class="day-done"><p class="dd-t">이날 한 일</p>
-        ${doneAsg.map(a => { const t = todoById(a.todo_id); return t
-          ? `<div class="todo-line"><button class="chk on" disabled>✓</button><span class="done-txt">${esc(t.text)}</span></div>` : ''; }).join('')}
+        ${doneAsg.map(a =>
+          `<div class="todo-line"><button class="chk on" disabled>✓</button><span class="done-txt">${esc(asgText(a))}</span></div>`).join('')}
       </div>` : '');
 }
 
@@ -1097,15 +1113,38 @@ function toggleCard(e, id){
   UI.openSubj.has(id) ? UI.openSubj.delete(id) : UI.openSubj.add(id);
   renderSubjects();
 }
+const autoRecorded = new Set(); // 이 세션에서 자동 기록한 배정 (체크 취소 시 되돌림용)
 function tdChk(e, id){
   e.stopPropagation();
   const t = todoById(id); if(!t) return;
   t.done = !t.done;
   upd('todos', id, {done:t.done});
-  // 오늘 배정과 동기화
-  S.assignments.filter(a => a.todo_id === id && a.date === todayStr()).forEach(a => {
-    if(a.done !== t.done){ a.done = t.done; upd('assignments', a.id, {done:a.done}); }
-  });
+  const today = todayStr();
+  const todays = S.assignments.filter(a => a.todo_id === id && a.date === today);
+  if(t.done){
+    if(todays.length){
+      todays.forEach(a => { if(!a.done){ a.done = true; upd('assignments', a.id, {done:true}); } });
+    }else{
+      // 배정 없이 완료 → '오늘 한 일'로 자동 기록
+      const row = { id:uid(), user_id:S.user.id, todo_id:id, date:today, done:true, title:t.text,
+        sort_order: S.assignments.filter(a => a.date === today).length };
+      S.assignments.push({...row, created_at:new Date().toISOString()});
+      ins('assignments', row);
+      autoRecorded.add(row.id);
+    }
+    clearFutureAssignments(id, null);
+  }else{
+    todays.forEach(a => {
+      if(autoRecorded.has(a.id)){
+        // 방금 자동 기록된 것: 체크 취소 시 기록도 회수
+        autoRecorded.delete(a.id);
+        S.assignments = S.assignments.filter(x => x.id !== a.id);
+        del('assignments', a.id);
+      }else if(a.done){
+        a.done = false; upd('assignments', a.id, {done:false});
+      }
+    });
+  }
   renderAll();
 }
 function tdEdit(el, id){

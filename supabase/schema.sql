@@ -43,16 +43,25 @@ create table if not exists todos (
 create table if not exists assignments (
   id         uuid primary key default gen_random_uuid(),
   user_id    uuid not null default auth.uid() references auth.users(id) on delete cascade,
-  todo_id    uuid not null references todos(id) on delete cascade,
+  todo_id    uuid references todos(id) on delete set null,
   date       date not null,
   done       boolean not null default false,
   sort_order int  not null default 0,
+  title      text,
   created_at timestamptz not null default now(),
   unique (todo_id, date)
 );
 
 -- 기존 설치에 컬럼 추가 (여러 번 실행해도 안전)
 alter table assignments add column if not exists sort_order int not null default 0;
+
+-- 배정에 할일 이름 스냅샷 보관: 할일을 삭제해도 '그날 한 일' 기록은 남는다
+alter table assignments add column if not exists title text;
+update assignments a set title = t.text from todos t where a.todo_id = t.id and a.title is null;
+alter table assignments alter column todo_id drop not null;
+alter table assignments drop constraint if exists assignments_todo_id_fkey;
+alter table assignments add constraint assignments_todo_id_fkey
+  foreign key (todo_id) references todos(id) on delete set null;
 
 -- 타이머 세션 (과목 삭제 시에도 기록은 남김)
 create table if not exists sessions (
