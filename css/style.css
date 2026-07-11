@@ -219,7 +219,7 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .subj-detail{display:none;margin-top:14px;border-top:1.5px solid var(--line);padding-top:10px;}
 .subj-card.open .subj-detail{display:block;}
 .sub-todos{margin-left:30px;border-left:2px solid var(--line);padding-left:12px;}
-.sub-todos .todo-line{font-size:13px;padding:5px 0;}
+.sub-todos .todo-line{font-size:13px;padding:5px 0;font-weight:500;}
 .big-line{font-weight:700;}
 .td-txt{outline:none;flex:1;min-width:0;}
 .td-txt:focus{background:var(--focus-bg);border-radius:6px;padding:1px 5px;}
