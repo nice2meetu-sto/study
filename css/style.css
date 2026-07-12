@@ -48,7 +48,7 @@ body{font-family:'Pretendard',sans-serif;color:var(--ink);min-height:100dvh;}
 }
 .screen.active{display:block;animation:fade .22s ease;}
 @keyframes fade{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:none}}
-@media (prefers-reduced-motion:reduce){.screen.active{animation:none}.sheet{animation:none!important}}
+@media (prefers-reduced-motion:reduce){.screen.active{animation:none}.sheet{animation:none!important}#go-star{animation:none!important}}
 
 /* ═══ 화면 진입 시 카드 등장 ═══ */
 .screen.entering :is(.card,.tile,.tile-split,.go-timer,.streak-bar,.hero-timer,.mini-stat,
@@ -127,6 +127,13 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
   background:var(--ink);color:#fff;border:none;border-radius:var(--r-md);
   padding:16px 20px;cursor:pointer;font-family:'Jua';font-size:17px;}
 .go-timer small{font-family:'Pretendard';font-size:12px;opacity:.7;font-weight:500;display:block;margin-top:3px;text-align:left;}
+/* 공부하는 중(별비 내릴 때)에만 홈 카드 반전: 흰 바탕 + 검정 글씨 */
+.go-timer{transition:background-color .8s ease,color .8s ease;}
+html.studying .go-timer{background:#fff;color:var(--ink);}
+/* 공부 안 할 때(시작 전·잠깐 쉬는 중)는 별이가 천천히 숨쉬기 */
+#go-star{transform-origin:center;}
+html:not(.studying) #go-star{animation:breathe 3.4s ease-in-out infinite;}
+@keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 .go-time{font-family:'Jua';font-size:23px;letter-spacing:.5px;margin-left:auto;padding-right:12px;}
 .go-timer:focus-visible{outline:3px solid #D8D2C6;}
 .streak-bar{display:flex;justify-content:space-between;align-items:center;min-height:auto;padding:16px 18px;}
