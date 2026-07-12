@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=43';
+import { sb, fetchAll } from './api.js?v=44';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -744,6 +744,7 @@ function renderTimer(){
   $('#star-break').style.display = paused ? '' : 'none';
   $('#star-rain').classList.toggle('on', running);
   document.documentElement.classList.toggle('studying', running); // 홈 카드 반전 등 공부 중 스타일
+  $('#go-timer').style.setProperty('--go-bg', running && T.subjId ? subjColor(T.subjId) : '#fff');
   renderTimerChips();
 }
 function renderTimerChips(){

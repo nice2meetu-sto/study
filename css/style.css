@@ -129,10 +129,10 @@ h1.display{font-family:'Jua',sans-serif;font-size:24px;font-weight:400;line-heig
 .go-timer small{font-family:'Pretendard';font-size:12px;opacity:.7;font-weight:500;display:block;margin-top:3px;text-align:left;}
 /* 공부하는 중(별비 내릴 때)에만 홈 카드 반전: 흰 바탕 + 검정 글씨 */
 .go-timer{transition:background-color .8s ease,color .8s ease;}
-html.studying .go-timer{background:#fff;color:var(--ink);}
+html.studying .go-timer{background:var(--go-bg,#fff);color:var(--ink);}
 /* 공부 안 할 때(시작 전·잠깐 쉬는 중)는 별이가 천천히 숨쉬기 */
 #go-star{transform-origin:center;}
-html:not(.studying) #go-star{animation:breathe 3.4s ease-in-out infinite;}
+html:not(.studying) #go-star{animation:breathe 5s ease-in-out infinite;}
 @keyframes breathe{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
 .go-time{font-family:'Jua';font-size:23px;letter-spacing:.5px;margin-left:auto;padding-right:12px;}
 .go-timer:focus-visible{outline:3px solid #D8D2C6;}
