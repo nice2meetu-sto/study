@@ -26,6 +26,20 @@ body{font-family:'Pretendard',sans-serif;color:var(--ink);min-height:100dvh;}
   to{transform:translate3d(125vh,125vh,0) rotate(360deg);}
 }
 
+/* ═══ 공부 중 다크 모드 (타이머 작동 중 html.study-dark) ═══ */
+html{transition:background-color .8s ease;}
+h1.display,.eyebrow,.pager .p-lbl{transition:color .8s ease;}
+.go-timer,.chip,.f-chip{transition:background-color .8s ease,color .8s ease;}
+html.study-dark{background:#211A32;}
+html.study-dark h1.display,
+html.study-dark .pager .p-lbl{color:#fff;}
+html.study-dark .eyebrow{color:#B7B1CB;}
+/* 홈 공부하는 중 카드: 흰 바탕 + 검정 글씨 */
+html.study-dark .go-timer{background:#fff;color:var(--ink);}
+/* 타이머 과목 칩 · 과목탭 필터: 선택 시 진한 노랑 */
+html.study-dark .chip.on,
+html.study-dark .f-chip.on{background:var(--deep-yellow);color:var(--ink);}
+
 /* ═══ 로그인 ═══ */
 #login{min-height:100dvh;display:flex;align-items:center;justify-content:center;padding:24px;}
 .login-card{width:100%;max-width:320px;text-align:center;}
