@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=40';
+import { sb, fetchAll } from './api.js?v=41';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -934,6 +934,11 @@ function renderDayCard(y, mo){
 
 /* ── 공부 기록 수정 시트 ── */
 const hmOf = iso => { const d = new Date(iso); return `${pad(d.getHours())}:${pad(d.getMinutes())}`; };
+// 네이티브 time 입력은 기기 설정(오전/오후)을 따르므로, 24시간제 텍스트를 겉에 보여주고
+// 투명한 입력을 겹쳐서 탭하면 기존 시간 선택기가 열리게 한다
+const t24 = (val, attrs = '', wrapStyle = '') =>
+  `<span class="t24-wrap"${wrapStyle ? ` style="${wrapStyle}"` : ''}><span class="t24">${val}</span>` +
+  `<input type="time" value="${val}" oninput="this.previousElementSibling.textContent=this.value" ${attrs}></span>`;
 function openSessSheet(){
   const base = monthOf(UI.moOffset);
   UI.sessDate = ymd(new Date(base.getFullYear(), base.getMonth(), UI.selDay));
@@ -952,9 +957,9 @@ function renderSessSheet(){
       <div class="set-line" data-sess-id="${s.id}">
         <span class="c-dot" style="background:${subjColor(s.subject_id)}" aria-hidden="true"></span>
         <span class="sess-name">${esc(subjName(s.subject_id))}</span>
-        <input type="time" class="date-input" value="${hmOf(s.started_at)}" onchange="sessTime(this,'${s.id}','start')" aria-label="시작 시각">
+        ${t24(hmOf(s.started_at), `onchange="sessTime(this,'${s.id}','start')" aria-label="시작 시각"`)}
         <span class="meta">~</span>
-        <input type="time" class="date-input" value="${hmOf(s.ended_at)}" onchange="sessTime(this,'${s.id}','end')" aria-label="종료 시각">
+        ${t24(hmOf(s.ended_at), `onchange="sessTime(this,'${s.id}','end')" aria-label="종료 시각"`)}
         <span class="meta sess-dur">${fmtMin(s.duration_sec/60)}</span>
       </div></div>`).join('')}
   </div>` : '<div class="cat-group"><p class="todo-empty" style="padding:6px 4px">기록이 없어요</p></div>';
@@ -968,9 +973,9 @@ function renderSessSheet(){
       <p class="t">기록 추가</p>
       <div class="set-row"><select id="sess-subj" aria-label="과목">${subjOpts}</select></div>
       <div class="set-row">
-        <input type="time" id="sess-start" class="date-input" style="flex:1" value="09:00" aria-label="시작 시각">
+        ${t24('09:00', 'id="sess-start" aria-label="시작 시각"', 'flex:1')}
         <span class="meta" style="align-self:center">~</span>
-        <input type="time" id="sess-end" class="date-input" style="flex:1" value="10:00" aria-label="종료 시각">
+        ${t24('10:00', 'id="sess-end" aria-label="종료 시각"', 'flex:1')}
         <button class="set-add" onclick="addSessManual()">추가</button>
       </div>
     </div>`);
