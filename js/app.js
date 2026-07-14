@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=45';
+import { sb, fetchAll } from './api.js?v=46';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -565,6 +565,7 @@ function bindWTodo(el){
       if(!wasDragging){ toggleAsg(asgId); return; }
       const under = document.elementFromPoint(ev.clientX, ev.clientY);
       if(under?.closest('#pool-card')){ removeAsg(asgId); return; } // 담기로 돌려놓기 = 배정 해제
+      const landedIdx = [...$$('#week-row .day-col')].indexOf(el.closest('.day-col')); // 드롭된 요일칸
       // 화면에 보이는 순서 그대로 날짜·순번 저장
       $$('#week-row .day-col').forEach(col => {
         const date = col.dataset.date;
@@ -578,6 +579,7 @@ function bindWTodo(el){
         });
       });
       renderAll();
+      if(landedIdx >= 0) scrollWeekTo(landedIdx, true); // 드롭된 요일칸을 중앙으로
     };
     window.addEventListener('pointermove', mv);
     window.addEventListener('pointerup', up);
@@ -663,6 +665,7 @@ function bindPoolDrag(){
         const col = document.elementFromPoint(ev.clientX, ev.clientY)?.closest('.day-col:not(.past)');
         if(!col) return;
         const date = col.dataset.date;
+        const landedIdx = [...$$('#week-row .day-col')].indexOf(col); // 드롭된 요일칸
         if(existing){
           if(existing.date !== date){
             existing.date = date;
@@ -678,6 +681,7 @@ function bindPoolDrag(){
           ins('assignments', row);
           renderAll();
         }
+        if(landedIdx >= 0) scrollWeekTo(landedIdx, true); // 드롭된 요일칸을 중앙으로
       };
       it.setPointerCapture(e.pointerId);
       it.addEventListener('pointermove', mv);
@@ -755,6 +759,7 @@ function renderTimerChips(){
       <span class="dot" style="background:${s.color}"></span>${esc(s.name)}</button>`).join('');
   $$('#timer-chips [data-subj]').forEach(c => c.addEventListener('click', () => {
     T.subjId = c.dataset.subj; persistTimer(); renderTimer();
+    renderHome(); // 홈 '공부하는 중' 카드의 과목명·색상 동기화
   }));
   const sel = subjById(T.subjId);
   $('#hero-timer').style.background = sel ? sel.color + '40' : 'var(--yellow-soft)';
