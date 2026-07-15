@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=46';
+import { sb, fetchAll } from './api.js?v=47';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -185,7 +185,7 @@ function goScreen(id){
     const recent = recentSubject();
     if(recent){ T.subjId = recent.id; persistTimer(); renderTimer(); }
   }
-  if(id === 'scr-week' && UI.wkOffset === 0 && !UI.weekScrolled) scrollWeekToToday();
+  if(id === 'scr-week' && UI.wkOffset === 0) scrollWeekToToday(); // 플랜 진입 시 항상 오늘 칸 위치로
 }
 function recentSubject(){
   const doing = doingSubjects();
