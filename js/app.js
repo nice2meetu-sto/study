@@ -1,7 +1,7 @@
 // ═══════════════════════════════════════════════════════
 // 공부의 별 ⭐ — 메인 앱
 // ═══════════════════════════════════════════════════════
-import { sb, fetchAll } from './api.js?v=47';
+import { sb, fetchAll } from './api.js?v=48';
 
 /* ═════════ 상수 · 유틸 ═════════ */
 const PALETTE = ['#CFC5FF','#C9EBD9','#FFD983','#FFD3DE','#BFE3F5','#F5CDBF','#D9EBC9','#E5C9EB'];
@@ -506,6 +506,7 @@ function bindWTodo(el){
     const lift = () => {
       if(dragging) return;
       dragging = true; wDragging = true;
+      $('#week-row').classList.add('snap-off');
       ghost = el.cloneNode(true); ghost.classList.add('ghost-drag');
       ghost.style.width = el.offsetWidth+'px';
       document.body.appendChild(ghost);
@@ -553,6 +554,7 @@ function bindWTodo(el){
       el.classList.remove('drag-src');
       if(ghost) ghost.remove();
       wDragging = false;
+      $('#week-row').classList.remove('snap-off');
     };
     const cancel = () => {
       const wasDragging = dragging;
@@ -634,6 +636,7 @@ function bindPoolDrag(){
       const mv = ev => {
         if(!dragging && Math.hypot(ev.clientX-sx, ev.clientY-sy) > 10){
           dragging = true;
+          $('#week-row').classList.add('snap-off');
           ghost = it.cloneNode(true); ghost.classList.add('ghost-drag');
           document.body.appendChild(ghost);
         }
@@ -651,6 +654,7 @@ function bindPoolDrag(){
         it.removeEventListener('pointercancel', cancel);
         $$('.day-col').forEach(c => c.classList.remove('hover'));
         if(ghost) ghost.remove();
+        $('#week-row').classList.remove('snap-off');
       };
       const cancel = () => { canceled = true; cleanup(); };
       const up = ev => {

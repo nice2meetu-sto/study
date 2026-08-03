@@ -141,10 +141,12 @@ html:not(.studying) #go-star{animation:breathe 5s ease-in-out infinite;}
 .streak-bar .sb-msg{font-size:12.5px;font-weight:600;color:var(--sub);}
 
 /* ═══ 위클리 ═══ */
-.week-scroll{display:flex;gap:10px;overflow-x:auto;padding:14px 2px 6px;scrollbar-width:none;}
+.week-scroll{display:flex;gap:10px;overflow-x:auto;padding:14px 2px 6px;scrollbar-width:none;
+  scroll-snap-type:x mandatory;} /* 손을 떼면 요일 칸이 가운데로 스냅 */
+.week-scroll.snap-off{scroll-snap-type:none;} /* 드래그 중에는 스냅 해제 (가장자리 자동 스크롤 보호) */
 .week-scroll::-webkit-scrollbar{display:none;}
 .day-col{flex:0 0 200px;background:#fff;border-radius:var(--r-md);padding:14px;min-height:250px;
-  box-shadow:0 4px 12px rgba(43,36,64,.05);border:1.5px solid transparent;}
+  box-shadow:0 4px 12px rgba(43,36,64,.05);border:1.5px solid transparent;scroll-snap-align:center;}
 .week-sum{display:grid;grid-template-columns:repeat(7,1fr);gap:6px;margin-top:12px;}
 .ws-cell{background:#fff;border:1.5px solid transparent;border-radius:12px;padding:7px 0 5px;text-align:center;
   cursor:pointer;font-family:'Pretendard';box-shadow:0 2px 8px rgba(43,36,64,.05);}
